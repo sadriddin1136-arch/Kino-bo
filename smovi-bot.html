@@ -1,0 +1,1094 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>SMOVI BOT</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:      #060608;
+  --surf:    #0f0f14;
+  --card:    #16161f;
+  --card2:   #1e1e2a;
+  --accent:  #6c63ff;
+  --accentg: linear-gradient(135deg,#8b80ff,#6c63ff,#4a42cc);
+  --red:     #ff4757;
+  --gold:    #ffd700;
+  --text:    #eeeef5;
+  --muted:   #6b6b88;
+  --border:  #252535;
+  --radius:  14px;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overflow:hidden}
+body{
+  background:var(--bg);color:var(--text);
+  font-family:'Inter',sans-serif;
+  display:flex;flex-direction:column;
+}
+
+/* ─── SUBSCRIPTION GATE ─── */
+#gate{
+  position:fixed;inset:0;z-index:2000;
+  background:radial-gradient(ellipse at 50% -10%,#1a1040 0%,#060608 65%);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:28px;text-align:center;
+  transition:opacity .4s,transform .4s;
+}
+#gate.gone{opacity:0;transform:scale(1.04);pointer-events:none}
+
+.gate-logo{
+  font-family:'Oswald',sans-serif;font-size:52px;font-weight:700;
+  letter-spacing:4px;
+  background:var(--accentg);-webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  margin-bottom:4px;line-height:1;
+}
+.gate-sub-title{
+  font-size:13px;color:var(--muted);letter-spacing:2px;
+  text-transform:uppercase;margin-bottom:36px;
+}
+.gate-desc{
+  font-size:14px;color:rgba(238,238,245,.6);
+  line-height:1.7;max-width:280px;margin-bottom:32px;
+}
+
+.ch-block{
+  width:100%;max-width:340px;
+  background:var(--card);border:1px solid var(--border);
+  border-radius:var(--radius);padding:14px 16px;
+  display:flex;align-items:center;gap:12px;
+  margin-bottom:28px;position:relative;overflow:hidden;
+}
+.ch-block::after{
+  content:'';position:absolute;left:0;top:0;bottom:0;
+  width:3px;background:var(--accentg);
+}
+.ch-ava{
+  width:46px;height:46px;border-radius:50%;
+  background:var(--accentg);
+  display:flex;align-items:center;justify-content:center;
+  font-size:22px;flex-shrink:0;
+}
+.ch-txt{flex:1;text-align:left}
+.ch-name{font-weight:700;font-size:14px}
+.ch-handle{color:var(--muted);font-size:12px;margin-top:1px}
+.sub-btn-ch{
+  background:var(--accentg);border:none;border-radius:10px;
+  padding:8px 16px;color:#fff;font-family:'Inter',sans-serif;
+  font-weight:700;font-size:13px;cursor:pointer;flex-shrink:0;
+  transition:opacity .2s,transform .15s;
+}
+.sub-btn-ch:active{transform:scale(.95);opacity:.85}
+
+.verify-btn{
+  width:100%;max-width:340px;
+  background:var(--accentg);border:none;border-radius:var(--radius);
+  padding:15px;color:#fff;font-family:'Inter',sans-serif;
+  font-weight:700;font-size:15px;cursor:pointer;
+  box-shadow:0 6px 28px rgba(108,99,255,.4);
+  transition:transform .15s,box-shadow .15s;
+}
+.verify-btn:active{transform:scale(.97)}
+
+/* ─── MAIN LAYOUT ─── */
+#app{display:none;flex-direction:column;height:100%}
+#app.on{display:flex}
+
+/* ─── HEADER ─── */
+header{
+  flex-shrink:0;
+  background:rgba(6,6,8,.92);backdrop-filter:blur(18px);
+  border-bottom:1px solid var(--border);
+  padding:12px 16px 10px;z-index:100;
+}
+.hdr-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.logo-txt{
+  font-family:'Oswald',sans-serif;font-size:24px;font-weight:700;
+  letter-spacing:3px;
+  background:var(--accentg);-webkit-background-clip:text;-webkit-text-fill-color:transparent;
+}
+.hdr-right{display:flex;gap:6px}
+.hbtn{
+  width:36px;height:36px;border-radius:10px;
+  background:var(--card);border:1px solid var(--border);
+  display:flex;align-items:center;justify-content:center;
+  font-size:16px;cursor:pointer;transition:background .2s;
+}
+.hbtn:active{background:var(--border)}
+.admin-hbtn{border-color:rgba(108,99,255,.5);color:var(--accent)}
+
+.srch{position:relative}
+.srch-inp{
+  width:100%;background:var(--card);border:1px solid var(--border);
+  border-radius:11px;padding:9px 13px 9px 38px;
+  color:var(--text);font-family:'Inter',sans-serif;font-size:14px;
+  outline:none;transition:border-color .2s;
+}
+.srch-inp:focus{border-color:var(--accent)}
+.srch-inp::placeholder{color:var(--muted)}
+.srch-ico{position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:15px;pointer-events:none}
+
+/* ─── GENRE TABS ─── */
+.gtabs{
+  display:flex;gap:7px;overflow-x:auto;
+  padding:10px 16px 2px;scrollbar-width:none;flex-shrink:0;
+}
+.gtabs::-webkit-scrollbar{display:none}
+.gtab{
+  flex-shrink:0;padding:6px 14px;border-radius:50px;
+  font-weight:600;font-size:12px;
+  background:var(--card);border:1px solid var(--border);
+  color:var(--muted);cursor:pointer;transition:all .18s;
+}
+.gtab.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+
+/* ─── SCROLL AREA ─── */
+.pages{flex:1;overflow:hidden;position:relative}
+.page{
+  position:absolute;inset:0;overflow-y:auto;overflow-x:hidden;
+  padding-bottom:72px;display:none;
+}
+.page.on{display:block;animation:fadeUp .3s ease}
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+
+/* ─── FEATURED ─── */
+.feat{
+  margin:12px 16px;height:195px;border-radius:18px;
+  overflow:hidden;cursor:pointer;position:relative;
+}
+.feat-bg{
+  width:100%;height:100%;
+  background:linear-gradient(135deg,#120a30,#0a1428,#1a0a20);
+  display:flex;align-items:center;justify-content:flex-end;
+  padding:16px;position:relative;
+}
+.feat-poster{
+  width:105px;height:155px;border-radius:12px;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;
+  font-size:50px;
+  background:linear-gradient(180deg,#2a1a50,#100820);
+  border:1.5px solid rgba(255,255,255,.1);
+  box-shadow:-16px 0 36px rgba(0,0,0,.7);
+}
+.feat-info{
+  position:absolute;left:18px;top:0;bottom:0;
+  display:flex;flex-direction:column;justify-content:flex-end;
+  padding-bottom:18px;max-width:180px;
+}
+.feat-badge{
+  display:inline-flex;align-items:center;gap:4px;
+  background:var(--red);color:#fff;
+  font-size:10px;font-weight:700;padding:3px 9px;
+  border-radius:50px;width:fit-content;margin-bottom:7px;
+}
+.feat-title{
+  font-family:'Oswald',sans-serif;font-size:26px;font-weight:700;
+  line-height:1.1;text-shadow:0 2px 10px rgba(0,0,0,.9);margin-bottom:5px;
+}
+.feat-meta{display:flex;gap:8px;align-items:center;font-size:11px;font-weight:600;color:rgba(255,255,255,.65)}
+.rat-chip{background:var(--gold);color:#000;border-radius:5px;padding:2px 7px;font-weight:800;font-size:11px}
+.feat-play{
+  position:absolute;right:125px;bottom:18px;
+  width:40px;height:40px;border-radius:50%;
+  background:rgba(108,99,255,.35);backdrop-filter:blur(8px);
+  border:1.5px solid rgba(108,99,255,.6);
+  display:flex;align-items:center;justify-content:center;font-size:16px;
+}
+
+/* ─── SECTION ─── */
+.sec{margin-bottom:4px}
+.sec-hd{display:flex;align-items:center;justify-content:space-between;padding:10px 16px 7px}
+.sec-ttl{font-weight:700;font-size:16px;display:flex;align-items:center;gap:5px}
+.see-all{color:var(--accent);font-size:12px;font-weight:700;cursor:pointer}
+
+/* ─── HSCROLL CARD ─── */
+.hscr{display:flex;gap:11px;overflow-x:auto;padding:0 16px 6px;scrollbar-width:none}
+.hscr::-webkit-scrollbar{display:none}
+.mc{flex-shrink:0;width:125px;cursor:pointer;transition:transform .18s}
+.mc:active{transform:scale(.96)}
+.mc-p{
+  width:125px;height:178px;border-radius:13px;
+  background:var(--card);border:1px solid var(--border);
+  display:flex;align-items:center;justify-content:center;
+  font-size:50px;position:relative;overflow:hidden;margin-bottom:7px;
+}
+.mc-q{
+  position:absolute;top:7px;right:7px;
+  background:rgba(0,0,0,.75);color:var(--accent);
+  font-size:10px;font-weight:800;padding:2px 7px;border-radius:5px;
+  border:1px solid rgba(108,99,255,.3);
+}
+.mc-r{
+  position:absolute;bottom:7px;left:7px;
+  background:rgba(0,0,0,.75);color:#fff;
+  font-size:11px;font-weight:700;padding:2px 7px;border-radius:5px;
+}
+.mc-t{font-weight:700;font-size:12px;line-height:1.3}
+.mc-y{color:var(--muted);font-size:11px;margin-top:1px}
+
+/* ─── GRID ─── */
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:11px;padding:4px 16px 0}
+.gc{
+  background:var(--card);border:1px solid var(--border);
+  border-radius:14px;overflow:hidden;cursor:pointer;
+  transition:transform .18s;animation:fadeUp .3s ease both;
+}
+.gc:active{transform:scale(.96)}
+.gc-p{
+  width:100%;height:172px;
+  display:flex;align-items:center;justify-content:center;font-size:60px;
+  position:relative;background:linear-gradient(180deg,var(--surf),var(--card));
+}
+.gc-b{padding:9px 11px 11px}
+.gc-t{font-weight:700;font-size:12px;line-height:1.3;margin-bottom:3px}
+.gc-m{display:flex;justify-content:space-between;align-items:center}
+.gc-y{color:var(--muted);font-size:11px}
+.gc-r{background:var(--gold);color:#000;font-size:10px;font-weight:800;padding:2px 7px;border-radius:50px}
+
+/* ─── BOTTOM NAV ─── */
+nav{
+  flex-shrink:0;
+  background:rgba(15,15,20,.96);backdrop-filter:blur(20px);
+  border-top:1px solid var(--border);
+  display:flex;padding:8px 0 calc(8px + env(safe-area-inset-bottom));
+  z-index:200;
+}
+.nb{
+  flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;
+  cursor:pointer;padding:3px 0;transition:all .2s;
+}
+.nb-i{font-size:20px;transition:transform .2s}
+.nb-l{font-size:10px;font-weight:600;color:var(--muted);letter-spacing:.3px}
+.nb.on .nb-l{color:var(--accent)}
+.nb.on .nb-i{transform:translateY(-2px)}
+.nb-dot{width:3px;height:3px;border-radius:50%;background:var(--accent);margin:0 auto;opacity:0;transition:opacity .2s}
+.nb.on .nb-dot{opacity:1}
+
+/* ─── MOVIE MODAL ─── */
+.mwrap{
+  display:none;position:fixed;inset:0;z-index:800;
+  background:rgba(0,0,0,.65);backdrop-filter:blur(6px);
+  align-items:flex-end;
+}
+.mwrap.on{display:flex}
+.mdl{
+  width:100%;max-height:92vh;
+  background:var(--surf);border-radius:24px 24px 0 0;
+  overflow-y:auto;animation:slideUp .32s cubic-bezier(.2,.8,.3,1);
+}
+@keyframes slideUp{from{transform:translateY(100%)}to{transform:none}}
+.mdl-hero{
+  height:230px;position:relative;
+  background:linear-gradient(135deg,#120a30,#0a1428);
+  display:flex;align-items:center;justify-content:center;font-size:88px;
+}
+.mdl-close{
+  position:absolute;top:14px;right:14px;
+  width:34px;height:34px;border-radius:50%;
+  background:rgba(0,0,0,.55);backdrop-filter:blur(8px);
+  border:1px solid rgba(255,255,255,.12);
+  display:flex;align-items:center;justify-content:center;
+  font-size:17px;cursor:pointer;
+}
+.mdl-body{padding:18px 18px 28px}
+.mdl-title{font-family:'Oswald',sans-serif;font-size:30px;letter-spacing:.5px;margin-bottom:7px}
+.mdl-tags{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:14px}
+.tg{
+  background:var(--card2);border:1px solid var(--border);
+  padding:4px 11px;border-radius:50px;font-size:11px;font-weight:600;color:var(--muted);
+}
+.tg.acc{background:rgba(108,99,255,.15);border-color:rgba(108,99,255,.4);color:var(--accent)}
+.tg.fav-tag{cursor:pointer}
+.mdl-desc{color:rgba(238,238,245,.65);font-size:13px;line-height:1.7;margin-bottom:18px}
+.mdl-stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:20px}
+.sbox{background:var(--card);border:1px solid var(--border);border-radius:11px;padding:11px;text-align:center}
+.sval{font-weight:800;font-size:17px;color:var(--accent)}
+.slbl{color:var(--muted);font-size:10px;margin-top:1px}
+.watch-btn{
+  width:100%;background:var(--accentg);border:none;border-radius:var(--radius);
+  padding:15px;color:#fff;font-family:'Inter',sans-serif;
+  font-weight:700;font-size:15px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;gap:7px;
+  box-shadow:0 4px 22px rgba(108,99,255,.35);transition:transform .15s;
+}
+.watch-btn:active{transform:scale(.98)}
+
+/* ─── PROFILE ─── */
+.prof-hdr{text-align:center;padding:28px 20px 20px}
+.pava{
+  width:76px;height:76px;border-radius:50%;
+  background:var(--accentg);margin:0 auto 11px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:32px;box-shadow:0 4px 22px rgba(108,99,255,.3);
+}
+.pname{font-weight:700;font-size:19px;margin-bottom:3px}
+.ptag{color:var(--muted);font-size:12px}
+.admin-badge{
+  display:inline-flex;align-items:center;gap:4px;
+  background:rgba(108,99,255,.2);border:1px solid rgba(108,99,255,.4);
+  color:var(--accent);font-size:11px;font-weight:700;
+  padding:3px 10px;border-radius:50px;margin-top:6px;
+}
+.pstats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:9px;margin:0 16px 18px}
+.pmenu{padding:0 16px 90px}
+.mi{
+  display:flex;align-items:center;gap:12px;
+  background:var(--card);border:1px solid var(--border);
+  border-radius:13px;padding:13px 15px;margin-bottom:7px;
+  cursor:pointer;transition:background .2s;
+}
+.mi:active{background:var(--border)}
+.mi-i{font-size:20px}
+.mi-t{flex:1}
+.mi-tt{font-weight:700;font-size:13px}
+.mi-st{color:var(--muted);font-size:11px}
+.mi-a{color:var(--muted);font-size:17px}
+
+/* ─── ADMIN PANEL ─── */
+.apanel{
+  display:none;position:fixed;inset:0;z-index:1500;
+  background:rgba(0,0,0,.7);backdrop-filter:blur(8px);
+  align-items:flex-end;
+}
+.apanel.on{display:flex}
+.asheet{
+  width:100%;max-height:95vh;
+  background:var(--surf);border-radius:24px 24px 0 0;
+  overflow-y:auto;padding:0 0 32px;
+  animation:slideUp .32s cubic-bezier(.2,.8,.3,1);
+}
+.asheet-hdr{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:20px 20px 16px;
+  border-bottom:1px solid var(--border);
+  position:sticky;top:0;background:var(--surf);z-index:10;
+}
+.asheet-title{font-family:'Oswald',sans-serif;font-size:24px;font-weight:700;
+  background:var(--accentg);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.aclose{
+  width:32px;height:32px;border-radius:50%;
+  background:var(--card);border:1px solid var(--border);
+  display:flex;align-items:center;justify-content:center;font-size:16px;cursor:pointer;
+}
+
+.atabs{display:flex;gap:0;border-bottom:1px solid var(--border)}
+.atab{
+  flex:1;padding:12px;text-align:center;font-weight:700;font-size:13px;
+  color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;
+  transition:all .2s;
+}
+.atab.on{color:var(--accent);border-bottom-color:var(--accent)}
+
+/* add movie form */
+.aform{padding:18px 18px 0}
+.flbl{font-size:11px;font-weight:700;color:var(--muted);display:block;margin-bottom:5px;text-transform:uppercase;letter-spacing:.5px}
+.finp,.fsel,.ftxt{
+  width:100%;background:var(--card);border:1px solid var(--border);
+  border-radius:11px;padding:11px 13px;color:var(--text);
+  font-family:'Inter',sans-serif;font-size:14px;outline:none;
+  transition:border-color .2s;margin-bottom:12px;
+}
+.finp:focus,.fsel:focus,.ftxt:focus{border-color:var(--accent)}
+.fsel{-webkit-appearance:none}
+.ftxt{resize:none;height:76px}
+.frow{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.frow .finp,.frow .fsel{margin-bottom:0}
+.frow-wrap{margin-bottom:12px}
+.abtn{
+  width:100%;background:var(--accentg);border:none;border-radius:var(--radius);
+  padding:14px;color:#fff;font-family:'Inter',sans-serif;
+  font-weight:700;font-size:15px;cursor:pointer;
+  box-shadow:0 4px 20px rgba(108,99,255,.3);transition:transform .15s;
+  margin-top:4px;
+}
+.abtn:active{transform:scale(.98)}
+.abtn.del{background:linear-gradient(135deg,#ff6b81,#ff4757);box-shadow:0 4px 20px rgba(255,71,87,.25)}
+
+/* movie list in admin */
+.alist{padding:14px 16px}
+.ali{
+  display:flex;align-items:center;gap:12px;
+  background:var(--card);border:1px solid var(--border);
+  border-radius:12px;padding:11px 13px;margin-bottom:8px;
+}
+.ali-emo{font-size:28px;flex-shrink:0}
+.ali-inf{flex:1}
+.ali-t{font-weight:700;font-size:13px}
+.ali-y{color:var(--muted);font-size:11px;margin-top:1px}
+.ali-del{
+  width:32px;height:32px;border-radius:9px;flex-shrink:0;
+  background:rgba(255,71,87,.15);border:1px solid rgba(255,71,87,.3);
+  display:flex;align-items:center;justify-content:center;font-size:16px;cursor:pointer;
+}
+.ali-del:active{background:rgba(255,71,87,.3)}
+
+/* ─── TOAST ─── */
+.toast{
+  position:fixed;bottom:82px;left:50%;transform:translateX(-50%) translateY(16px);
+  background:var(--card2);border:1px solid var(--border);
+  padding:9px 18px;border-radius:50px;
+  font-size:13px;font-weight:600;
+  opacity:0;transition:all .28s;z-index:9999;white-space:nowrap;
+}
+.toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* ─── EMPTY ─── */
+.empty{text-align:center;padding:56px 20px}
+.empty-i{font-size:60px;margin-bottom:14px}
+.empty-t{font-weight:700;font-size:17px;margin-bottom:7px}
+.empty-s{color:var(--muted);font-size:13px}
+
+/* ─── SETTINGS SECTION ─── */
+.astats-grid{
+  display:grid;grid-template-columns:1fr 1fr;gap:10px;
+  padding:16px 18px 0;
+}
+.astat{
+  background:var(--card);border:1px solid var(--border);
+  border-radius:12px;padding:14px;text-align:center;
+}
+.astat-v{font-weight:800;font-size:24px;color:var(--accent)}
+.astat-l{color:var(--muted);font-size:11px;margin-top:2px}
+</style>
+</head>
+<body>
+
+<!-- ═══════════ SUBSCRIPTION GATE ═══════════ -->
+<div id="gate">
+  <div class="gate-logo">SMOVI</div>
+  <div class="gate-sub-title">O'zbek Kino Boti</div>
+  <p class="gate-desc">Botdan foydalanish uchun quyidagi rasmiy kanalimizga obuna bo'ling. Bu mutlaqo bepul!</p>
+
+  <div class="ch-block">
+    <div class="ch-ava">🎬</div>
+    <div class="ch-txt">
+      <div class="ch-name">SMOVI — Rasmiy Kanal</div>
+      <div class="ch-handle">@smovi_uz</div>
+    </div>
+    <button class="sub-btn-ch" onclick="goChannel()">Obuna</button>
+  </div>
+
+  <button class="verify-btn" onclick="verifySubscription()">✅ Obunani Tasdiqlash</button>
+</div>
+
+<!-- ═══════════ MAIN APP ═══════════ -->
+<div id="app">
+
+  <!-- HEADER -->
+  <header>
+    <div class="hdr-row">
+      <div class="logo-txt">SMOVI</div>
+      <div class="hdr-right">
+        <div class="hbtn admin-hbtn" id="adminBtn" style="display:none" onclick="openAdmin()">⚙️</div>
+        <div class="hbtn">🔔</div>
+      </div>
+    </div>
+    <div class="srch">
+      <span class="srch-ico">🔍</span>
+      <input class="srch-inp" id="srchInp" type="text" placeholder="Kino nomi yoki janri..." oninput="liveSearch(this.value)">
+    </div>
+  </header>
+
+  <!-- GENRE TABS -->
+  <div class="gtabs" id="gtabs"></div>
+
+  <!-- PAGES -->
+  <div class="pages">
+
+    <!-- HOME -->
+    <div class="page on" id="pg-home">
+      <!-- Featured -->
+      <div class="feat" id="featBox" onclick="">
+        <div class="feat-bg">
+          <div class="feat-info">
+            <span class="feat-badge">🔥 Tavsiya</span>
+            <div class="feat-title" id="ft-title">—</div>
+            <div class="feat-meta">
+              <span class="rat-chip" id="ft-rat">⭐ —</span>
+              <span id="ft-yr">—</span>
+              <span id="ft-gn">—</span>
+            </div>
+          </div>
+          <div class="feat-poster" id="ft-emo">🎬</div>
+          <div class="feat-play">▶</div>
+        </div>
+      </div>
+
+      <div class="sec">
+        <div class="sec-hd"><span class="sec-ttl">🆕 Yangi Kinolar</span><span class="see-all" onclick="setNav(1)">Barchasi</span></div>
+        <div class="hscr" id="s-new"></div>
+      </div>
+      <div class="sec">
+        <div class="sec-hd"><span class="sec-ttl">⭐ Top Reytinglar</span><span class="see-all" onclick="setNav(1)">Barchasi</span></div>
+        <div class="hscr" id="s-top"></div>
+      </div>
+      <div class="sec">
+        <div class="sec-hd"><span class="sec-ttl">🎭 Mashhurlar</span><span class="see-all" onclick="setNav(1)">Barchasi</span></div>
+        <div class="hscr" id="s-pop"></div>
+      </div>
+    </div>
+
+    <!-- CATALOG -->
+    <div class="page" id="pg-cat">
+      <div class="grid" id="cat-grid"></div>
+    </div>
+
+    <!-- SEARCH -->
+    <div class="page" id="pg-srch">
+      <div class="grid" id="srch-res"></div>
+      <div class="empty" id="srch-emp">
+        <div class="empty-i">🔍</div>
+        <div class="empty-t">Qidirish</div>
+        <div class="empty-s">Kino nomini kiriting</div>
+      </div>
+    </div>
+
+    <!-- FAVORITES -->
+    <div class="page" id="pg-fav">
+      <div class="grid" id="fav-grid"></div>
+      <div class="empty" id="fav-emp" style="display:none">
+        <div class="empty-i">🎞️</div>
+        <div class="empty-t">Sevimlilar bo'sh</div>
+        <div class="empty-s">Kinoni ❤️ bilan saqlang</div>
+      </div>
+    </div>
+
+    <!-- PROFILE -->
+    <div class="page" id="pg-prof">
+      <div class="prof-hdr">
+        <div class="pava">👤</div>
+        <div class="pname" id="pname">Foydalanuvchi</div>
+        <div class="ptag" id="ptag">@smovi_uz</div>
+        <div class="admin-badge" id="adminBadge" style="display:none">👑 Admin</div>
+      </div>
+      <div class="pstats">
+        <div class="sbox"><div class="sval" id="st-w">0</div><div class="slbl">Ko'rildi</div></div>
+        <div class="sbox"><div class="sval" id="st-f">0</div><div class="slbl">Sevimli</div></div>
+        <div class="sbox"><div class="sval" id="st-t">0</div><div class="slbl">Jami kino</div></div>
+      </div>
+      <div class="pmenu">
+        <div class="mi" id="adminMI" style="display:none" onclick="openAdmin()">
+          <span class="mi-i">⚙️</span>
+          <div class="mi-t"><div class="mi-tt">Admin Panel</div><div class="mi-st">Kinolarni boshqarish</div></div>
+          <span class="mi-a">›</span>
+        </div>
+        <div class="mi" onclick="goChannel()">
+          <span class="mi-i">📢</span>
+          <div class="mi-t"><div class="mi-tt">Rasmiy Kanal</div><div class="mi-st">@smovi_uz</div></div>
+          <span class="mi-a">›</span>
+        </div>
+        <div class="mi">
+          <span class="mi-i">🔔</span>
+          <div class="mi-t"><div class="mi-tt">Bildirishnomalar</div><div class="mi-st">Yangi kinolar haqida</div></div>
+          <span class="mi-a">›</span>
+        </div>
+        <div class="mi">
+          <span class="mi-i">🌐</span>
+          <div class="mi-t"><div class="mi-tt">Til</div><div class="mi-st">O'zbek tili</div></div>
+          <span class="mi-a">›</span>
+        </div>
+        <div class="mi">
+          <span class="mi-i">ℹ️</span>
+          <div class="mi-t"><div class="mi-tt">SMOVI BOT haqida</div><div class="mi-st">Versiya 1.0.0</div></div>
+          <span class="mi-a">›</span>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /pages -->
+
+  <!-- BOTTOM NAV -->
+  <nav>
+    <div class="nb on" onclick="setNav(0)"><div class="nb-i">🏠</div><div class="nb-l">Bosh</div><div class="nb-dot"></div></div>
+    <div class="nb" onclick="setNav(1)"><div class="nb-i">🎬</div><div class="nb-l">Katalog</div><div class="nb-dot"></div></div>
+    <div class="nb" onclick="setNav(2)"><div class="nb-i">🔍</div><div class="nb-l">Qidirish</div><div class="nb-dot"></div></div>
+    <div class="nb" onclick="setNav(3)"><div class="nb-i">❤️</div><div class="nb-l">Sevimli</div><div class="nb-dot"></div></div>
+    <div class="nb" onclick="setNav(4)"><div class="nb-i">👤</div><div class="nb-l">Profil</div><div class="nb-dot"></div></div>
+  </nav>
+</div>
+
+<!-- ─── MOVIE MODAL ─── -->
+<div class="mwrap" id="mvModal" onclick="closeModalOut(event)">
+  <div class="mdl" id="mdlBox">
+    <div class="mdl-hero" id="mdl-hero">
+      <span id="mdl-emo">🎬</span>
+      <div class="mdl-close" onclick="closeModal()">✕</div>
+    </div>
+    <div class="mdl-body">
+      <div class="mdl-title" id="mdl-title"></div>
+      <div class="mdl-tags" id="mdl-tags"></div>
+      <p class="mdl-desc" id="mdl-desc"></p>
+      <div class="mdl-stats">
+        <div class="sbox"><div class="sval" id="mdl-rat"></div><div class="slbl">Reyting</div></div>
+        <div class="sbox"><div class="sval" id="mdl-yr"></div><div class="slbl">Yil</div></div>
+        <div class="sbox"><div class="sval" id="mdl-dur"></div><div class="slbl">Davomiylik</div></div>
+      </div>
+      <button class="watch-btn" onclick="watchMovie()">▶ Tomosha Qilish</button>
+    </div>
+  </div>
+</div>
+
+<!-- ─── ADMIN PANEL ─── -->
+<div class="apanel" id="adminPanel" onclick="closeAdminOut(event)">
+  <div class="asheet" id="aSheetBox">
+    <div class="asheet-hdr">
+      <div class="asheet-title">⚙️ Admin Panel</div>
+      <div class="aclose" onclick="closeAdmin()">✕</div>
+    </div>
+
+    <!-- Admin sub-tabs -->
+    <div class="atabs">
+      <div class="atab on" id="atab-add" onclick="switchATab(0)">➕ Kino Qo'shish</div>
+      <div class="atab" id="atab-list" onclick="switchATab(1)">📋 Kinolar</div>
+      <div class="atab" id="atab-stat" onclick="switchATab(2)">📊 Statistika</div>
+    </div>
+
+    <!-- ADD MOVIE FORM -->
+    <div id="a-add" class="aform">
+      <label class="flbl">Kino nomi (O'zbek tilida)</label>
+      <input class="finp" id="a-ttl" type="text" placeholder="Masalan: Yulduzlar Urushi">
+
+      <div class="frow frow-wrap">
+        <div>
+          <label class="flbl">Yil</label>
+          <input class="finp" id="a-yr" type="number" placeholder="2024" style="margin-bottom:0">
+        </div>
+        <div>
+          <label class="flbl">Davomiylik</label>
+          <input class="finp" id="a-dur" type="text" placeholder="2s 15d" style="margin-bottom:0">
+        </div>
+      </div>
+
+      <div class="frow frow-wrap">
+        <div>
+          <label class="flbl">Janr</label>
+          <select class="fsel" id="a-genre" style="margin-bottom:0">
+            <option>Komediya</option><option>Drama</option><option>Fantastika</option>
+            <option>Triller</option><option>Jangari</option><option>Animatsiya</option>
+            <option>Romantik</option><option>Dahshat</option>
+          </select>
+        </div>
+        <div>
+          <label class="flbl">Reyting (1-10)</label>
+          <input class="finp" id="a-rat" type="number" min="1" max="10" step="0.1" placeholder="8.5" style="margin-bottom:0">
+        </div>
+      </div>
+
+      <label class="flbl" style="margin-top:12px">Emoji (Poster o'rniga)</label>
+      <input class="finp" id="a-emo" type="text" placeholder="🎬" maxlength="4">
+
+      <label class="flbl">Tavsif</label>
+      <textarea class="ftxt" id="a-desc" placeholder="Kino haqida qisqacha tavsif..."></textarea>
+
+      <label class="flbl">Video havolasi (Telegram yoki boshqa)</label>
+      <input class="finp" id="a-link" type="text" placeholder="https://t.me/...">
+
+      <div class="frow frow-wrap">
+        <div>
+          <label class="flbl">Sifat</label>
+          <select class="fsel" id="a-qual" style="margin-bottom:0">
+            <option>HD</option><option>4K</option><option>FHD</option><option>CAM</option>
+          </select>
+        </div>
+        <div>
+          <label class="flbl">Holat</label>
+          <select class="fsel" id="a-flags" style="margin-bottom:0">
+            <option value="new">Yangi</option>
+            <option value="top">Top</option>
+            <option value="pop">Mashhur</option>
+            <option value="all">Hammasi</option>
+          </select>
+        </div>
+      </div>
+
+      <button class="abtn" style="margin-top:16px" onclick="addMovie()">✅ Kinoni Qo'shish</button>
+    </div>
+
+    <!-- MOVIE LIST -->
+    <div id="a-list" style="display:none">
+      <div class="alist" id="alist-inner"></div>
+    </div>
+
+    <!-- STATS -->
+    <div id="a-stat" style="display:none">
+      <div class="astats-grid">
+        <div class="astat"><div class="astat-v" id="as-tot">0</div><div class="astat-l">Jami Kinolar</div></div>
+        <div class="astat"><div class="astat-v" id="as-new">0</div><div class="astat-l">Yangi</div></div>
+        <div class="astat"><div class="astat-v" id="as-top">0</div><div class="astat-l">Top</div></div>
+        <div class="astat"><div class="astat-v" id="as-pop">0</div><div class="astat-l">Mashhur</div></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ════════════════════════════════════════
+//  CONFIG
+// ════════════════════════════════════════
+const ADMIN_ID   = 1489108498;
+const CHANNEL    = 'https://t.me/smovi_uz';
+const GENRES     = ['Hammasi','Jangari','Drama','Komediya','Romantik','Fantastika','Animatsiya','Triller','Dahshat'];
+
+// ════════════════════════════════════════
+//  BUILTIN MOVIES (default database)
+// ════════════════════════════════════════
+const BUILT_IN = [
+  {id:1,  title:'Avatar',             emoji:'🌌', year:2009, genre:'Fantastika', rating:8.2, dur:'2s 42d', desc:'Pandora sayyorasida inson va Na\'vi xalqi o\'rtasidagi epik kurash. O\'zbek tilida dublyaj.',       link:'#', qual:'HD',  isNew:true,  isTop:true,  isPop:true },
+  {id:2,  title:'Titanik',            emoji:'🚢', year:1997, genre:'Romantik',   rating:7.9, dur:'3s 14d', desc:'Mashhur kemaning fojiali sayohati va buyuk sevgi qissasi. O\'zbek tilida.',                        link:'#', qual:'4K',  isNew:false, isTop:true,  isPop:true },
+  {id:3,  title:'Xayol ichida',       emoji:'💫', year:2010, genre:'Triller',    rating:8.8, dur:'2s 28d', desc:'Dom Cobb tushlar orqali ma\'lumot o\'g\'irlaydigan maestro. O\'zbek tilida.',                     link:'#', qual:'HD',  isNew:false, isTop:true,  isPop:false},
+  {id:4,  title:'Sher Qirol',         emoji:'🦁', year:2019, genre:'Animatsiya', rating:7.0, dur:'1s 58d', desc:'Simba qochib ketadi, ammo taqdiri yana qaytib kelishini talab etadi. O\'zbek tilida.',            link:'#', qual:'4K',  isNew:true,  isTop:false, isPop:true },
+  {id:5,  title:'Yulduzlararo',       emoji:'🚀', year:2014, genre:'Fantastika', rating:8.7, dur:'2s 49d', desc:'Insoniyatni saqlab qolish uchun astronavtlar vaqt chegarasini kesib o\'tadi.',                   link:'#', qual:'4K',  isNew:false, isTop:true,  isPop:true },
+  {id:6,  title:'Joker',             emoji:'🃏', year:2019, genre:'Drama',      rating:8.4, dur:'2s 02d', desc:'Arthur Fleck oddiy komediantdan Gothamning eng xavfli jinoyatchisiga aylangani.',                 link:'#', qual:'HD',  isNew:false, isTop:true,  isPop:true },
+  {id:7,  title:'Tez va G\'azabli',   emoji:'🏎️', year:2023, genre:'Jangari',   rating:7.3, dur:'2s 21d', desc:'Dom va uning jamoasi yangi xavf bilan to\'qnashadi. O\'zbek tili.',                               link:'#', qual:'4K',  isNew:true,  isTop:false, isPop:true },
+  {id:8,  title:'O\'rgimchak-Odam',   emoji:'🕷️', year:2021, genre:'Jangari',   rating:8.3, dur:'2s 28d', desc:'Peter Parker koinotlararo dushmanlari bilan kurashadi. O\'zbek tilida eng yaxshi dublyaj.',       link:'#', qual:'4K',  isNew:true,  isTop:true,  isPop:true },
+  {id:9,  title:'Parazit',           emoji:'🏠', year:2019, genre:'Drama',      rating:8.6, dur:'2s 12d', desc:'Kambag\'al oila boylar uyiga asta-sekin o\'rnalib oladi. Oscar g\'olibi.',                       link:'#', qual:'HD',  isNew:false, isTop:true,  isPop:false},
+  {id:10, title:'Qorong\'i Ritsar',   emoji:'🦇', year:2008, genre:'Jangari',   rating:9.0, dur:'2s 32d', desc:'Batman Joker bilan eng qorong\'i kurashini olib boradi. O\'zbek tilida.',                         link:'#', qual:'HD',  isNew:false, isTop:true,  isPop:true },
+  {id:11, title:'Muzlatilgan',        emoji:'❄️', year:2013, genre:'Animatsiya', rating:7.4, dur:'1s 42d', desc:'Elza va Anna opa-singillarning sehrli sarguzashtlari. Bolalar uchun o\'zbek tilida.',            link:'#', qual:'4K',  isNew:false, isTop:false, isPop:true },
+  {id:12, title:'Dune',              emoji:'🏜️', year:2021, genre:'Fantastika', rating:8.0, dur:'2s 35d', desc:'Paul Atreides qumli Arrakis sayyorasida o\'z taqdirini topadi.',                                 link:'#', qual:'4K',  isNew:true,  isTop:true,  isPop:false},
+  {id:13, title:'Forrest Gamp',      emoji:'🍫', year:1994, genre:'Drama',      rating:8.8, dur:'2s 22d', desc:'Oddiy bir odam butun Amerika tarixidan o\'tib, muhabbat haqida dars beradi.',                    link:'#', qual:'HD',  isNew:false, isTop:true,  isPop:true },
+  {id:14, title:'Oppengeimer',       emoji:'☢️', year:2023, genre:'Drama',      rating:8.5, dur:'3s 00d', desc:'Atom bombasi ixtirochisi Robert Oppenheimerning hayoti haqida Nolan masterpiece\'i.',             link:'#', qual:'4K',  isNew:true,  isTop:true,  isPop:true },
+  {id:15, title:'Deadpool',          emoji:'🔴', year:2016, genre:'Komediya',   rating:8.0, dur:'1s 48d', desc:'Hazilkash superqahramonning o\'zgacha sarguzashtlari. Kulishga tayyor bo\'ling!',                 link:'#', qual:'HD',  isNew:false, isTop:false, isPop:true },
+  {id:16, title:'Moana',             emoji:'🌊', year:2016, genre:'Animatsiya', rating:7.6, dur:'1s 43d', desc:'Janubiy Tinch okeani qahramonining sarguzashtlari. Bolalar uchun o\'zbek tilida.',               link:'#', qual:'HD',  isNew:false, isTop:false, isPop:true },
+  {id:17, title:'Daftar',            emoji:'💌', year:2004, genre:'Romantik',   rating:7.8, dur:'2s 03d', desc:'Ikki sevgili o\'rtasidagi cheksiz muhabbat qissasi. O\'zbek tilida asl musiqa bilan.',           link:'#', qual:'HD',  isNew:false, isTop:false, isPop:true },
+  {id:18, title:'Qochib Keting',     emoji:'😱', year:2017, genre:'Dahshat',    rating:7.7, dur:'1s 44d', desc:'Afroamerika yigiti qiz do\'stining oilasiga boradi va g\'alati sirlarni kashf etadi.',          link:'#', qual:'HD',  isNew:false, isTop:false, isPop:false},
+  {id:19, title:'Shang-Chi',         emoji:'🥋', year:2021, genre:'Jangari',   rating:7.4, dur:'2s 12d', desc:'Shang-Chi otasining sirli tashkilotiga duch keladi va o\'tmishi bilan yuzlashadi.',              link:'#', qual:'4K',  isNew:true,  isTop:false, isPop:true },
+  {id:20, title:'Olmos qo\'l',       emoji:'💎', year:2000, genre:'Komediya',   rating:8.1, dur:'1s 44d', desc:'Tirik klassik. O\'zbek tilida o\'sib ulg\'aygan avlodning sevimli kinosi.',                      link:'#', qual:'HD',  isNew:false, isTop:true,  isPop:true },
+];
+
+// ════════════════════════════════════════
+//  STATE
+// ════════════════════════════════════════
+let customMovies = JSON.parse(localStorage.getItem('smovi_movies') || '[]');
+let favorites    = JSON.parse(localStorage.getItem('smovi_favs')   || '[]');
+let watched      = JSON.parse(localStorage.getItem('smovi_watched')|| '[]');
+let currentGenre = 'Hammasi';
+let currentNav   = 0;
+let currentMovie = null;
+let isAdmin      = false;
+let nextId       = parseInt(localStorage.getItem('smovi_nextid') || '1000');
+
+const allMovies = () => [...BUILT_IN, ...customMovies];
+
+// ════════════════════════════════════════
+//  SUBSCRIPTION GATE
+// ════════════════════════════════════════
+function goChannel() {
+  if (window.Telegram?.WebApp) Telegram.WebApp.openLink(CHANNEL);
+  else window.open(CHANNEL, '_blank');
+}
+
+function verifySubscription() {
+  // In real deployment: call backend API to check if user is subscribed to @smovi_uz
+  // For demo: auto-pass
+  document.getElementById('gate').classList.add('gone');
+  setTimeout(() => {
+    document.getElementById('gate').style.display = 'none';
+    document.getElementById('app').classList.add('on');
+    initApp();
+  }, 420);
+}
+
+// ════════════════════════════════════════
+//  INIT
+// ════════════════════════════════════════
+function initApp() {
+  if (window.Telegram?.WebApp) {
+    Telegram.WebApp.ready();
+    Telegram.WebApp.expand();
+    const u = Telegram.WebApp.initDataUnsafe?.user;
+    if (u) {
+      document.getElementById('pname').textContent = (u.first_name||'') + ' ' + (u.last_name||'');
+      document.getElementById('ptag').textContent  = u.username ? '@'+u.username : '@smovi_uz';
+      if (u.id === ADMIN_ID) activateAdmin();
+    }
+  } else {
+    // Dev: uncomment to test admin
+    // activateAdmin();
+  }
+  buildGenreTabs();
+  renderHome();
+  renderCatalog();
+  updateStats();
+}
+
+function activateAdmin() {
+  isAdmin = true;
+  document.getElementById('adminBtn').style.display  = 'flex';
+  document.getElementById('adminBadge').style.display = 'inline-flex';
+  document.getElementById('adminMI').style.display    = 'flex';
+}
+
+// ════════════════════════════════════════
+//  GENRE TABS
+// ════════════════════════════════════════
+function buildGenreTabs() {
+  document.getElementById('gtabs').innerHTML = GENRES.map((g,i) =>
+    `<div class="gtab ${i===0?'on':''}" onclick="switchGenre(${i},'${g}')">${g}</div>`
+  ).join('');
+}
+function switchGenre(i, g) {
+  currentGenre = g;
+  document.querySelectorAll('.gtab').forEach((t,j) => t.classList.toggle('on', i===j));
+  renderCatalog();
+  setNav(1);
+}
+
+// ════════════════════════════════════════
+//  HOME
+// ════════════════════════════════════════
+function renderHome() {
+  const mvs = allMovies();
+  // featured = highest rated top movie
+  const feat = [...mvs].filter(m=>m.isTop).sort((a,b)=>b.rating-a.rating)[0] || mvs[0];
+  document.getElementById('ft-title').textContent = feat.title;
+  document.getElementById('ft-rat').textContent   = '⭐ '+feat.rating;
+  document.getElementById('ft-yr').textContent    = feat.year;
+  document.getElementById('ft-gn').textContent    = feat.genre;
+  document.getElementById('ft-emo').textContent   = feat.emoji;
+  document.getElementById('featBox').onclick = () => openMovie(feat.id);
+
+  document.getElementById('s-new').innerHTML = mvs.filter(m=>m.isNew).map(hCard).join('');
+  document.getElementById('s-top').innerHTML = mvs.filter(m=>m.isTop).sort((a,b)=>b.rating-a.rating).map(hCard).join('');
+  document.getElementById('s-pop').innerHTML = mvs.filter(m=>m.isPop).map(hCard).join('');
+}
+
+function hCard(m) {
+  return `<div class="mc" onclick="openMovie(${m.id})">
+    <div class="mc-p">
+      ${m.emoji}
+      <span class="mc-q">${m.qual}</span>
+      <span class="mc-r">⭐${m.rating}</span>
+    </div>
+    <div class="mc-t">${m.title}</div>
+    <div class="mc-y">${m.year} · ${m.genre}</div>
+  </div>`;
+}
+
+// ════════════════════════════════════════
+//  CATALOG
+// ════════════════════════════════════════
+function renderCatalog(movies) {
+  const mvs = movies || (currentGenre==='Hammasi' ? allMovies() : allMovies().filter(m=>m.genre===currentGenre));
+  document.getElementById('cat-grid').innerHTML = mvs.map(gCard).join('');
+}
+
+function gCard(m) {
+  return `<div class="gc" onclick="openMovie(${m.id})">
+    <div class="gc-p">
+      ${m.emoji}
+      <span class="mc-q" style="position:absolute;top:8px;right:8px">${m.qual}</span>
+    </div>
+    <div class="gc-b">
+      <div class="gc-t">${m.title}</div>
+      <div class="gc-m">
+        <span class="gc-y">${m.year} · ${m.genre}</span>
+        <span class="gc-r">⭐${m.rating}</span>
+      </div>
+    </div>
+  </div>`;
+}
+
+// ════════════════════════════════════════
+//  SEARCH
+// ════════════════════════════════════════
+function liveSearch(q) {
+  const v = q.trim().toLowerCase();
+  const res = document.getElementById('srch-res');
+  const emp = document.getElementById('srch-emp');
+  setNav(2);
+  if (!v) { res.innerHTML=''; emp.style.display='block'; return; }
+  const found = allMovies().filter(m =>
+    m.title.toLowerCase().includes(v) ||
+    m.genre.toLowerCase().includes(v) ||
+    String(m.year).includes(v)
+  );
+  if (found.length) { res.innerHTML = found.map(gCard).join(''); emp.style.display='none'; }
+  else {
+    res.innerHTML = '';
+    emp.innerHTML = `<div class="empty-i">🎬</div><div class="empty-t">"${q}" topilmadi</div><div class="empty-s">Boshqa nom bilan urinib ko'ring</div>`;
+    emp.style.display = 'block';
+  }
+}
+
+// ════════════════════════════════════════
+//  FAVORITES
+// ════════════════════════════════════════
+function renderFavs() {
+  const fg = document.getElementById('fav-grid');
+  const fe = document.getElementById('fav-emp');
+  const mvs = allMovies().filter(m=>favorites.includes(m.id));
+  if (mvs.length) { fg.innerHTML = mvs.map(gCard).join(''); fe.style.display='none'; }
+  else            { fg.innerHTML=''; fe.style.display='block'; }
+}
+
+function toggleFav(id) {
+  favorites = favorites.includes(id) ? favorites.filter(x=>x!==id) : [...favorites, id];
+  localStorage.setItem('smovi_favs', JSON.stringify(favorites));
+  renderFavs(); updateStats();
+  updateFavTag(id);
+}
+
+function updateFavTag(id) {
+  const el = document.querySelector('.fav-tag');
+  if (el) el.textContent = favorites.includes(id) ? '❤️ Saqlangan' : '🤍 Saqlash';
+}
+
+// ════════════════════════════════════════
+//  STATS
+// ════════════════════════════════════════
+function updateStats() {
+  document.getElementById('st-w').textContent = watched.length;
+  document.getElementById('st-f').textContent = favorites.length;
+  document.getElementById('st-t').textContent = allMovies().length;
+}
+
+// ════════════════════════════════════════
+//  NAV
+// ════════════════════════════════════════
+function setNav(i) {
+  currentNav = i;
+  const ids = ['pg-home','pg-cat','pg-srch','pg-fav','pg-prof'];
+  ids.forEach((id,j) => document.getElementById(id).classList.toggle('on', i===j));
+  document.querySelectorAll('.nb').forEach((b,j) => b.classList.toggle('on', i===j));
+  if (i===3) renderFavs();
+  if (i===2) document.getElementById('srchInp').focus();
+  if (i===4) updateStats();
+}
+
+// ════════════════════════════════════════
+//  MOVIE MODAL
+// ════════════════════════════════════════
+function openMovie(id) {
+  const m = allMovies().find(x=>x.id===id);
+  if (!m) return;
+  currentMovie = m;
+  if (!watched.includes(id)) { watched.push(id); localStorage.setItem('smovi_watched', JSON.stringify(watched)); }
+  document.getElementById('mdl-emo').textContent   = m.emoji;
+  document.getElementById('mdl-title').textContent = m.title;
+  document.getElementById('mdl-rat').textContent   = '⭐ '+m.rating;
+  document.getElementById('mdl-yr').textContent    = m.year;
+  document.getElementById('mdl-dur').textContent   = m.dur;
+  document.getElementById('mdl-desc').textContent  = m.desc;
+  document.getElementById('mdl-tags').innerHTML =
+    `<span class="tg acc">${m.genre}</span>
+     <span class="tg">${m.qual}</span>
+     <span class="tg">${m.year}</span>
+     <span class="tg fav-tag" onclick="toggleFav(${m.id})">${favorites.includes(id)?'❤️ Saqlangan':'🤍 Saqlash'}</span>`;
+  document.getElementById('mvModal').classList.add('on');
+}
+
+function closeModal() { document.getElementById('mvModal').classList.remove('on'); }
+function closeModalOut(e) { if (e.target===document.getElementById('mvModal')) closeModal(); }
+
+function watchMovie() {
+  if (!currentMovie) return;
+  if (currentMovie.link && currentMovie.link !== '#') {
+    if (window.Telegram?.WebApp) Telegram.WebApp.openLink(currentMovie.link);
+    else window.open(currentMovie.link, '_blank');
+  } else {
+    toast('📹 Havola tez kunda qo\'shiladi!');
+  }
+}
+
+// ════════════════════════════════════════
+//  ADMIN PANEL
+// ════════════════════════════════════════
+function openAdmin() {
+  if (!isAdmin) { toast('⛔ Ruxsat yo\'q!'); return; }
+  document.getElementById('adminPanel').classList.add('on');
+  renderAdminList();
+  renderAdminStats();
+}
+function closeAdmin() { document.getElementById('adminPanel').classList.remove('on'); }
+function closeAdminOut(e) { if (e.target===document.getElementById('adminPanel')) closeAdmin(); }
+
+function switchATab(i) {
+  ['atab-add','atab-list','atab-stat'].forEach((id,j) =>
+    document.getElementById(id).classList.toggle('on', i===j)
+  );
+  document.getElementById('a-add').style.display  = i===0 ? 'block' : 'none';
+  document.getElementById('a-list').style.display = i===1 ? 'block' : 'none';
+  document.getElementById('a-stat').style.display = i===2 ? 'block' : 'none';
+  if (i===1) renderAdminList();
+  if (i===2) renderAdminStats();
+}
+
+function addMovie() {
+  const title = document.getElementById('a-ttl').value.trim();
+  if (!title) { toast('❌ Kino nomini kiriting!'); return; }
+  const flags = document.getElementById('a-flags').value;
+  const m = {
+    id:     nextId++,
+    title,
+    emoji:  document.getElementById('a-emo').value.trim() || '🎬',
+    year:   parseInt(document.getElementById('a-yr').value) || new Date().getFullYear(),
+    genre:  document.getElementById('a-genre').value,
+    rating: parseFloat(document.getElementById('a-rat').value) || 7.0,
+    dur:    document.getElementById('a-dur').value.trim() || '—',
+    desc:   document.getElementById('a-desc').value.trim() || 'O\'zbek tilida tarjima qilingan kino.',
+    link:   document.getElementById('a-link').value.trim() || '#',
+    qual:   document.getElementById('a-qual').value,
+    isNew:  flags==='new'||flags==='all',
+    isTop:  flags==='top'||flags==='all',
+    isPop:  flags==='pop'||flags==='all',
+  };
+  customMovies.push(m);
+  localStorage.setItem('smovi_movies', JSON.stringify(customMovies));
+  localStorage.setItem('smovi_nextid', String(nextId));
+  // clear form
+  ['a-ttl','a-yr','a-dur','a-rat','a-emo','a-desc','a-link'].forEach(id => document.getElementById(id).value='');
+  renderHome(); renderCatalog(); updateStats();
+  toast('✅ Kino muvaffaqiyatli qo\'shildi!');
+}
+
+function deleteMovie(id) {
+  customMovies = customMovies.filter(m => m.id !== id);
+  localStorage.setItem('smovi_movies', JSON.stringify(customMovies));
+  renderHome(); renderCatalog(); renderAdminList(); renderAdminStats(); updateStats();
+  toast('🗑️ Kino o\'chirildi');
+}
+
+function renderAdminList() {
+  const mvs = customMovies;
+  if (!mvs.length) {
+    document.getElementById('alist-inner').innerHTML =
+      '<div class="empty" style="padding:40px 20px"><div class="empty-i">📭</div><div class="empty-t">Qo\'shilgan kinolar yo\'q</div><div class="empty-s">Admin paneldan kino qo\'shing</div></div>';
+    return;
+  }
+  document.getElementById('alist-inner').innerHTML = mvs.map(m =>
+    `<div class="ali">
+      <div class="ali-emo">${m.emoji}</div>
+      <div class="ali-inf">
+        <div class="ali-t">${m.title}</div>
+        <div class="ali-y">${m.year} · ${m.genre} · ⭐${m.rating}</div>
+      </div>
+      <div class="ali-del" onclick="deleteMovie(${m.id})">🗑️</div>
+    </div>`
+  ).join('');
+}
+
+function renderAdminStats() {
+  const mvs = allMovies();
+  document.getElementById('as-tot').textContent = mvs.length;
+  document.getElementById('as-new').textContent = mvs.filter(m=>m.isNew).length;
+  document.getElementById('as-top').textContent = mvs.filter(m=>m.isTop).length;
+  document.getElementById('as-pop').textContent = mvs.filter(m=>m.isPop).length;
+}
+
+// ════════════════════════════════════════
+//  TOAST
+// ════════════════════════════════════════
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('on');
+  setTimeout(() => t.classList.remove('on'), 2600);
+}
+</script>
+</body>
+</html>
