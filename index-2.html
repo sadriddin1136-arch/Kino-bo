@@ -1,0 +1,1203 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>🎬 Kino Bot</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0f0f13;
+    --surface: #1a1a24;
+    --surface2: #22222f;
+    --border: rgba(255,255,255,0.07);
+    --accent: #e8b04b;
+    --accent2: #ff6b6b;
+    --text: #f0f0f5;
+    --muted: #7a7a9a;
+    --nav-h: 64px;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html, body { height:100%; overflow:hidden; background:var(--bg); font-family:'Outfit', sans-serif; color:var(--text); }
+
+  /* SCREENS */
+  .screen { position:absolute; inset:0; bottom:var(--nav-h); overflow-y:auto; overflow-x:hidden; display:none; }
+  .screen.active { display:block; }
+  .screen::-webkit-scrollbar { display:none; }
+
+  /* TOP BAR */
+  .top-bar {
+    position:sticky; top:0; z-index:10;
+    padding:14px 16px 10px;
+    background:linear-gradient(to bottom, var(--bg) 80%, transparent);
+    display:flex; align-items:center; gap:10px;
+  }
+  .top-bar h1 { font-size:22px; font-weight:800; letter-spacing:-0.5px; }
+  .top-bar h1 span { color:var(--accent); }
+  .top-bar .search-btn {
+    margin-left:auto; width:38px; height:38px; border-radius:50%;
+    background:var(--surface); border:1px solid var(--border);
+    display:flex; align-items:center; justify-content:center;
+    cursor:pointer; font-size:16px;
+  }
+
+  /* SEARCH */
+  .search-wrap { padding:0 16px 12px; }
+  .search-wrap input {
+    width:100%; background:var(--surface); border:1px solid var(--border);
+    border-radius:12px; padding:10px 14px; color:var(--text);
+    font-family:inherit; font-size:14px; outline:none;
+  }
+  .search-wrap input::placeholder { color:var(--muted); }
+  .search-wrap input:focus { border-color:var(--accent); }
+
+  /* CHIPS */
+  .chips-scroll { display:flex; gap:8px; overflow-x:auto; padding:0 16px 14px; scrollbar-width:none; }
+  .chips-scroll::-webkit-scrollbar { display:none; }
+  .chip {
+    flex-shrink:0; padding:7px 14px; border-radius:20px;
+    background:var(--surface); border:1px solid var(--border);
+    font-size:13px; font-weight:500; cursor:pointer; white-space:nowrap; transition:all .2s;
+  }
+  .chip.active { background:var(--accent); color:#0f0f13; border-color:var(--accent); font-weight:700; }
+
+  /* SECTION TITLE */
+  .sec-title { padding:0 16px 10px; font-size:13px; font-weight:700; text-transform:uppercase; letter-spacing:1px; color:var(--muted); }
+
+  /* FEATURED */
+  .featured-scroll { display:flex; gap:12px; overflow-x:auto; padding:0 16px 18px; scrollbar-width:none; }
+  .featured-scroll::-webkit-scrollbar { display:none; }
+  .featured-card {
+    flex-shrink:0; width:200px; border-radius:16px; overflow:hidden;
+    position:relative; cursor:pointer;
+    box-shadow:0 8px 24px rgba(0,0,0,0.5); transition:transform .2s;
+  }
+  .featured-card:active { transform:scale(0.96); }
+  .featured-card img { width:100%; height:280px; object-fit:cover; display:block; }
+  .featured-card .overlay {
+    position:absolute; bottom:0; left:0; right:0;
+    background:linear-gradient(transparent, rgba(0,0,0,0.9));
+    padding:40px 12px 12px;
+  }
+  .featured-card .overlay .title { font-size:14px; font-weight:700; line-height:1.3; }
+  .featured-card .overlay .meta { font-size:11px; color:var(--muted); margin-top:3px; }
+  .badge-imdb {
+    position:absolute; top:10px; right:10px;
+    background:var(--accent); color:#0f0f13;
+    font-size:11px; font-weight:800; padding:3px 7px; border-radius:6px;
+  }
+  .badge-new {
+    position:absolute; top:10px; left:10px;
+    background:var(--accent2); color:#fff;
+    font-size:10px; font-weight:700; padding:3px 8px; border-radius:6px;
+  }
+
+  /* GRID */
+  .movie-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; padding:0 16px 20px; }
+  .movie-card {
+    background:var(--surface); border-radius:14px; overflow:hidden;
+    cursor:pointer; transition:transform .15s; border:1px solid var(--border);
+  }
+  .movie-card:active { transform:scale(0.96); }
+  .movie-card img { width:100%; height:160px; object-fit:cover; display:block; }
+  .movie-card .info { padding:10px; }
+  .movie-card .info .name { font-size:13px; font-weight:600; line-height:1.3; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .movie-card .info .year { font-size:11px; color:var(--muted); margin-top:3px; }
+  .movie-card .info .rating { font-size:11px; color:var(--accent); font-weight:700; margin-top:2px; }
+
+  /* BOTTOM NAV */
+  .bottom-nav {
+    position:fixed; bottom:0; left:0; right:0;
+    height:var(--nav-h); background:var(--surface);
+    border-top:1px solid var(--border); display:flex; z-index:100;
+  }
+  .nav-btn {
+    flex:1; display:flex; flex-direction:column; align-items:center;
+    justify-content:center; gap:4px; cursor:pointer;
+    transition:color .2s; color:var(--muted); font-size:11px; font-weight:600;
+  }
+  .nav-btn.active { color:var(--accent); }
+  .nav-btn .icon { font-size:22px; line-height:1; }
+
+  /* DETAIL PANEL */
+  .detail-panel {
+    position:fixed; inset:0; z-index:200;
+    background:var(--bg);
+    transform:translateY(100%);
+    transition:transform .35s cubic-bezier(.4,0,.2,1);
+    overflow-y:auto;
+  }
+  .detail-panel.open { transform:translateY(0); }
+  .detail-panel::-webkit-scrollbar { display:none; }
+  .detail-hero { position:relative; }
+  .detail-hero img { width:100%; height:320px; object-fit:cover; display:block; }
+  .detail-hero::after {
+    content:''; position:absolute; inset:0;
+    background:linear-gradient(to bottom, transparent 40%, var(--bg));
+  }
+  .detail-back {
+    position:absolute; top:14px; left:14px; z-index:5;
+    width:38px; height:38px; border-radius:50%;
+    background:rgba(0,0,0,0.6); backdrop-filter:blur(8px);
+    display:flex; align-items:center; justify-content:center;
+    cursor:pointer; font-size:18px; border:1px solid rgba(255,255,255,0.1);
+  }
+  .detail-body { padding:0 16px 100px; margin-top:-40px; position:relative; z-index:2; }
+  .detail-body h2 { font-size:24px; font-weight:800; letter-spacing:-0.5px; }
+  .detail-body .d-meta { display:flex; gap:8px; margin-top:8px; flex-wrap:wrap; }
+  .d-tag { background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:4px 10px; font-size:12px; font-weight:600; }
+  .d-tag.imdb { background:rgba(232,176,75,0.15); border-color:var(--accent); color:var(--accent); }
+  .detail-body .d-desc { font-size:14px; color:rgba(240,240,245,0.75); line-height:1.7; margin-top:14px; }
+  .detail-actions { display:flex; gap:10px; margin-top:20px; }
+  .btn-watch {
+    flex:1; padding:14px; border-radius:14px; border:none;
+    background:var(--accent); color:#0f0f13;
+    font-family:inherit; font-size:14px; font-weight:800;
+    cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px;
+  }
+  .btn-watch:active { opacity:0.8; }
+  .btn-fav {
+    width:52px; height:52px; border-radius:14px; border:1px solid var(--border);
+    background:var(--surface); color:var(--text);
+    font-size:20px; cursor:pointer;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .btn-fav.active { background:rgba(255,107,107,0.15); border-color:var(--accent2); }
+  .cast-row { display:flex; gap:10px; overflow-x:auto; margin-top:10px; scrollbar-width:none; padding-bottom:4px; }
+  .cast-row::-webkit-scrollbar { display:none; }
+  .cast-item { flex-shrink:0; text-align:center; }
+  .cast-item img { width:58px; height:58px; border-radius:50%; object-fit:cover; border:2px solid var(--border); }
+  .cast-item .cast-name { font-size:10px; margin-top:5px; color:var(--muted); max-width:58px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+
+  /* VIDEO PLAYER */
+  .video-overlay {
+    position:fixed; inset:0; z-index:500;
+    background:#000;
+    display:none; flex-direction:column;
+  }
+  .video-overlay.open { display:flex; }
+  .video-header {
+    display:flex; align-items:center; gap:12px;
+    padding:14px 16px;
+    background:linear-gradient(to bottom, rgba(0,0,0,0.8), transparent);
+    position:absolute; top:0; left:0; right:0; z-index:10;
+  }
+  .video-header .v-back {
+    width:36px; height:36px; border-radius:50%;
+    background:rgba(255,255,255,0.15);
+    display:flex; align-items:center; justify-content:center;
+    cursor:pointer; font-size:18px; border:none; color:#fff;
+  }
+  .video-header .v-title { font-size:15px; font-weight:700; color:#fff; }
+  .video-wrap {
+    flex:1; display:flex; align-items:center; justify-content:center;
+    position:relative;
+  }
+  .video-wrap video {
+    width:100%; max-height:100vh;
+    background:#000;
+  }
+  .video-wrap iframe {
+    width:100%; height:100%; border:none;
+    position:absolute; inset:0;
+  }
+  /* No video placeholder */
+  .no-video {
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    gap:16px; color:rgba(255,255,255,0.6); padding:40px;
+    text-align:center;
+  }
+  .no-video .nv-icon { font-size:60px; }
+  .no-video .nv-text { font-size:16px; font-weight:600; color:#fff; }
+  .no-video .nv-sub { font-size:13px; line-height:1.6; }
+
+  /* TOAST */
+  .toast {
+    position:fixed; bottom:80px; left:50%; transform:translateX(-50%) translateY(20px);
+    background:var(--surface); border:1px solid var(--border); border-radius:12px;
+    padding:10px 20px; font-size:13px; font-weight:600; white-space:nowrap;
+    opacity:0; transition:all .3s; pointer-events:none; z-index:999;
+  }
+  .toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+
+  /* SEARCH RESULTS */
+  .search-results { padding:0 16px; }
+  .search-item {
+    display:flex; gap:12px; padding:12px 0; border-bottom:1px solid var(--border);
+    cursor:pointer; transition:opacity .15s;
+  }
+  .search-item:active { opacity:0.7; }
+  .search-item img { width:54px; height:74px; border-radius:10px; object-fit:cover; flex-shrink:0; }
+  .search-item .s-info { display:flex; flex-direction:column; justify-content:center; gap:4px; flex:1; }
+  .search-item .s-name { font-size:14px; font-weight:600; }
+  .search-item .s-meta { font-size:12px; color:var(--muted); }
+  .search-item .s-desc { font-size:12px; color:rgba(240,240,245,0.6); line-height:1.4; }
+
+  /* WATCHED */
+  .watched-wrap { padding:0 16px 20px; }
+  .watched-item {
+    display:flex; gap:12px; padding:12px 0; border-bottom:1px solid var(--border); cursor:pointer;
+  }
+  .watched-item img { width:54px; height:74px; border-radius:10px; object-fit:cover; flex-shrink:0; }
+  .watched-item .w-info { display:flex; flex-direction:column; justify-content:center; gap:5px; flex:1; }
+  .watched-item .w-name { font-size:14px; font-weight:600; }
+  .watched-item .w-meta { font-size:12px; color:var(--muted); }
+  .w-progress { height:3px; background:var(--surface2); border-radius:2px; margin-top:4px; }
+  .w-progress-bar { height:100%; background:var(--accent); border-radius:2px; }
+  .w-continue {
+    margin-left:auto; align-self:center;
+    background:var(--accent); color:#0f0f13;
+    font-size:11px; font-weight:800; padding:6px 12px; border-radius:8px; white-space:nowrap;
+  }
+
+  /* PROFILE */
+  .profile-wrap { padding:20px 16px; }
+  .profile-header { display:flex; flex-direction:column; align-items:center; gap:12px; padding:20px 0; }
+  .profile-avatar { width:80px; height:80px; border-radius:50%; background:linear-gradient(135deg,var(--accent),var(--accent2)); display:flex; align-items:center; justify-content:center; font-size:32px; }
+  .profile-name { font-size:20px; font-weight:800; }
+  .profile-sub { font-size:13px; color:var(--muted); }
+  .stat-row { display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; margin-top:8px; }
+  .stat-box { background:var(--surface); border-radius:14px; padding:14px; text-align:center; border:1px solid var(--border); }
+  .stat-box .s-num { font-size:22px; font-weight:800; color:var(--accent); }
+  .stat-box .s-lbl { font-size:11px; color:var(--muted); margin-top:2px; }
+  .menu-list { margin-top:20px; display:flex; flex-direction:column; gap:8px; }
+  .menu-item { background:var(--surface); border-radius:14px; padding:14px 16px; display:flex; align-items:center; gap:12px; cursor:pointer; border:1px solid var(--border); }
+  .menu-item .m-icon { font-size:20px; width:36px; height:36px; border-radius:10px; background:var(--surface2); display:flex; align-items:center; justify-content:center; }
+  .menu-item .m-label { font-size:14px; font-weight:600; flex:1; }
+  .menu-item .m-arrow { color:var(--muted); font-size:16px; }
+
+  /* ── ADMIN PANEL ── */
+  .admin-panel {
+    position:fixed; inset:0; z-index:600;
+    background:var(--bg); overflow-y:auto;
+    transform:translateY(100%);
+    transition:transform .35s cubic-bezier(.4,0,.2,1);
+  }
+  .admin-panel.open { transform:translateY(0); }
+  .admin-panel::-webkit-scrollbar { display:none; }
+  .admin-top {
+    position:sticky; top:0; z-index:10;
+    padding:14px 16px; background:var(--bg);
+    border-bottom:1px solid var(--border);
+    display:flex; align-items:center; gap:12px;
+  }
+  .admin-top h2 { font-size:18px; font-weight:800; flex:1; }
+  .admin-close {
+    width:36px; height:36px; border-radius:50%; background:var(--surface);
+    border:1px solid var(--border); display:flex; align-items:center;
+    justify-content:center; cursor:pointer; font-size:18px;
+  }
+  .admin-body { padding:16px; display:flex; flex-direction:column; gap:12px; }
+  .a-label { font-size:12px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:0.8px; margin-bottom:4px; }
+  .a-input {
+    width:100%; background:var(--surface); border:1px solid var(--border);
+    border-radius:12px; padding:12px 14px; color:var(--text);
+    font-family:inherit; font-size:14px; outline:none;
+  }
+  .a-input:focus { border-color:var(--accent); }
+  .a-input.textarea { resize:none; height:80px; }
+  .a-row { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .a-select {
+    width:100%; background:var(--surface); border:1px solid var(--border);
+    border-radius:12px; padding:12px 14px; color:var(--text);
+    font-family:inherit; font-size:14px; outline:none; appearance:none;
+  }
+  .a-select:focus { border-color:var(--accent); }
+  .video-type-tabs { display:flex; gap:8px; margin-bottom:4px; }
+  .vt-tab {
+    flex:1; padding:9px; border-radius:10px; border:1px solid var(--border);
+    background:var(--surface); color:var(--muted);
+    font-family:inherit; font-size:13px; font-weight:600; cursor:pointer; text-align:center;
+  }
+  .vt-tab.active { background:rgba(232,176,75,0.15); border-color:var(--accent); color:var(--accent); }
+  .btn-add-movie {
+    width:100%; padding:15px; border-radius:14px; border:none;
+    background:var(--accent); color:#0f0f13;
+    font-family:inherit; font-size:15px; font-weight:800;
+    cursor:pointer; margin-top:4px;
+  }
+  .btn-add-movie:active { opacity:0.8; }
+  .a-divider { height:1px; background:var(--border); margin:4px 0; }
+  .admin-movie-list { display:flex; flex-direction:column; gap:8px; }
+  .admin-movie-item {
+    background:var(--surface); border-radius:12px; padding:12px;
+    display:flex; align-items:center; gap:12px; border:1px solid var(--border);
+  }
+  .admin-movie-item img { width:42px; height:56px; border-radius:8px; object-fit:cover; }
+  .ami-info { flex:1; }
+  .ami-name { font-size:13px; font-weight:700; }
+  .ami-meta { font-size:11px; color:var(--muted); margin-top:2px; }
+  .ami-video { font-size:10px; color:var(--accent); margin-top:2px; }
+  .ami-actions { display:flex; gap:6px; }
+  .ami-btn {
+    width:32px; height:32px; border-radius:8px; border:1px solid var(--border);
+    background:var(--surface2); display:flex; align-items:center; justify-content:center;
+    cursor:pointer; font-size:14px;
+  }
+  .ami-btn.del { border-color:rgba(255,107,107,0.3); }
+  .ami-btn.del:active { background:rgba(255,107,107,0.2); }
+
+  /* SECTION LABEL */
+  .sub-title { font-size:13px; font-weight:700; text-transform:uppercase; letter-spacing:1px; color:var(--muted); margin-bottom:10px; margin-top:4px; }
+
+  /* ANIMATIONS */
+  @keyframes fadeUp { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:translateY(0); } }
+  .movie-grid .movie-card { animation:fadeUp .3s both; }
+  .movie-grid .movie-card:nth-child(2) { animation-delay:.05s; }
+  .movie-grid .movie-card:nth-child(3) { animation-delay:.1s; }
+  .movie-grid .movie-card:nth-child(4) { animation-delay:.15s; }
+  .movie-grid .movie-card:nth-child(5) { animation-delay:.2s; }
+  .movie-grid .movie-card:nth-child(6) { animation-delay:.25s; }
+
+  /* ── SUBSCRIPTION GATE ── */
+  .sub-gate {
+    position:fixed; inset:0; z-index:1000;
+    background:var(--bg);
+    display:flex; flex-direction:column;
+    align-items:center; justify-content:center;
+    padding:32px 24px; text-align:center;
+    gap:0;
+  }
+  .sub-gate.hidden { display:none; }
+  .sub-logo { font-size:64px; margin-bottom:16px; }
+  .sub-title { font-size:22px; font-weight:800; letter-spacing:-0.5px; margin-bottom:8px; }
+  .sub-title span { color:var(--accent); }
+  .sub-desc { font-size:14px; color:var(--muted); line-height:1.7; margin-bottom:28px; max-width:280px; }
+  .sub-channel-box {
+    width:100%; background:var(--surface); border:1px solid var(--border);
+    border-radius:16px; padding:16px; display:flex; align-items:center;
+    gap:14px; margin-bottom:20px; cursor:pointer; transition:border-color .2s;
+    text-decoration:none; color:inherit;
+  }
+  .sub-channel-box:active { border-color:var(--accent); }
+  .sub-ch-icon { font-size:32px; width:50px; height:50px; background:var(--surface2); border-radius:12px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+  .sub-ch-info { text-align:left; }
+  .sub-ch-name { font-size:15px; font-weight:700; }
+  .sub-ch-handle { font-size:12px; color:var(--muted); margin-top:2px; }
+  .sub-ch-arrow { margin-left:auto; color:var(--muted); font-size:20px; }
+  .btn-check-sub {
+    width:100%; padding:15px; border-radius:14px; border:none;
+    background:var(--accent); color:#0f0f13;
+    font-family:inherit; font-size:15px; font-weight:800;
+    cursor:pointer; transition:opacity .2s;
+  }
+  .btn-check-sub:active { opacity:0.8; }
+  .btn-check-sub:disabled { opacity:0.5; cursor:not-allowed; }
+  .sub-status { font-size:13px; margin-top:12px; min-height:20px; color:var(--muted); }
+  .sub-status.error { color:var(--accent2); }
+  .sub-status.success { color:#4caf50; }
+</style>
+</head>
+<body>
+
+<!-- SUBSCRIPTION GATE -->
+<div class="sub-gate" id="sub-gate">
+  <div class="sub-logo">🎬</div>
+  <div class="sub-title">Kino<span>Bot</span></div>
+  <div class="sub-desc">Kinolarni tomosha qilish uchun avval kanalimizga obuna bo'ling!</div>
+
+  <a class="sub-channel-box" id="sub-channel-link" href="#" target="_blank">
+    <div class="sub-ch-icon">📢</div>
+    <div class="sub-ch-info">
+      <div class="sub-ch-name" id="sub-ch-name">Kanal</div>
+      <div class="sub-ch-handle" id="sub-ch-handle">@kanal</div>
+    </div>
+    <div class="sub-ch-arrow">›</div>
+  </a>
+
+  <button class="btn-check-sub" id="btn-check-sub" onclick="checkSubscription()">
+    ✅ Obuna bo'ldim, tekshir
+  </button>
+  <div class="sub-status" id="sub-status"></div>
+</div>
+
+
+<!-- HOME -->
+<div class="screen active" id="home-screen">
+  <div class="top-bar">
+    <h1>🎬 Kino<span>Bot</span></h1>
+    <div class="search-btn" onclick="switchTab('search')">🔍</div>
+  </div>
+  <div class="chips-scroll" id="genre-chips">
+    <div class="chip active" onclick="filterGenre(this,'Barchasi')">Barchasi</div>
+    <div class="chip" onclick="filterGenre(this,'Jangovar')">⚔️ Jangovar</div>
+    <div class="chip" onclick="filterGenre(this,'Komediya')">😂 Komediya</div>
+    <div class="chip" onclick="filterGenre(this,'Drama')">🎭 Drama</div>
+    <div class="chip" onclick="filterGenre(this,'Triller')">😱 Triller</div>
+    <div class="chip" onclick="filterGenre(this,'Fantastika')">🚀 Fantastika</div>
+    <div class="chip" onclick="filterGenre(this,'Animatsiya')">🎨 Animatsiya</div>
+  </div>
+  <div class="sec-title">🔥 Trendda</div>
+  <div class="featured-scroll" id="featured-row"></div>
+  <div class="sec-title">🎬 Barcha kinolar</div>
+  <div class="movie-grid" id="movie-grid"></div>
+</div>
+
+<!-- SEARCH -->
+<div class="screen" id="search-screen">
+  <div class="top-bar"><h1>🔍 <span>Qidiruv</span></h1></div>
+  <div class="search-wrap">
+    <input type="text" id="search-input" placeholder="Kino nomi, janr..." oninput="doSearch(this.value)">
+  </div>
+  <div class="search-results" id="search-results">
+    <div style="padding:40px 0;text-align:center;color:var(--muted);font-size:14px;">Kino nomi yozing...</div>
+  </div>
+</div>
+
+<!-- WATCHED -->
+<div class="screen" id="watched-screen">
+  <div class="top-bar"><h1>📁 <span>Tarixim</span></h1></div>
+  <div class="watched-wrap" id="watched-list"></div>
+</div>
+
+<!-- PROFILE -->
+<div class="screen" id="profile-screen">
+  <div class="profile-wrap">
+    <div class="profile-header">
+      <div class="profile-avatar">👤</div>
+      <div class="profile-name" id="profile-name">Foydalanuvchi</div>
+      <div class="profile-sub" id="profile-sub">@username · KinoBot</div>
+    </div>
+    <div class="stat-row">
+      <div class="stat-box"><div class="s-num" id="stat-watched">0</div><div class="s-lbl">Ko'rildi</div></div>
+      <div class="stat-box"><div class="s-num" id="stat-fav">0</div><div class="s-lbl">Sevimli</div></div>
+      <div class="stat-box"><div class="s-num" id="stat-total">0</div><div class="s-lbl">Jami kino</div></div>
+    </div>
+    <div class="menu-list">
+      <div class="menu-item" onclick="switchTab('watched')"><div class="m-icon">📁</div><div class="m-label">Ko'rish tarixi</div><div class="m-arrow">›</div></div>
+      <div class="menu-item" onclick="showFavorites()"><div class="m-icon">❤️</div><div class="m-label">Sevimlilar</div><div class="m-arrow">›</div></div>
+      <div class="menu-item" id="admin-menu-btn" style="display:none" onclick="openAdmin()"><div class="m-icon">⚙️</div><div class="m-label">Admin panel</div><div class="m-arrow">›</div></div>
+      <div class="menu-item" onclick="showToast('Tez kunda...')"><div class="m-icon">🌐</div><div class="m-label">Til sozlamalari</div><div class="m-arrow">›</div></div>
+      <div class="menu-item" onclick="showToast('Tez kunda...')"><div class="m-icon">🔔</div><div class="m-label">Bildirishnomalar</div><div class="m-arrow">›</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- DETAIL PANEL -->
+<div class="detail-panel" id="detail-panel">
+  <div class="detail-hero">
+    <img id="d-poster" src="" alt="">
+    <div class="detail-back" onclick="closeDetail()">←</div>
+  </div>
+  <div class="detail-body">
+    <h2 id="d-title"></h2>
+    <div class="d-meta" id="d-meta"></div>
+    <p class="d-desc" id="d-desc"></p>
+    <div class="detail-actions">
+      <button class="btn-watch" onclick="openPlayer()">▶ Tomosha qilish</button>
+      <button class="btn-fav" id="fav-btn" onclick="toggleFav()">🤍</button>
+    </div>
+    <div class="sec-title" style="margin-top:22px;">Aktyorlar</div>
+    <div class="cast-row" id="d-cast"></div>
+  </div>
+</div>
+
+<!-- VIDEO PLAYER -->
+<div class="video-overlay" id="video-overlay">
+  <div class="video-header">
+    <button class="v-back" onclick="closePlayer()">←</button>
+    <div class="v-title" id="v-title"></div>
+  </div>
+  <div class="video-wrap" id="video-wrap"></div>
+</div>
+
+<!-- ADMIN PANEL -->
+<div class="admin-panel" id="admin-panel">
+  <div class="admin-top">
+    <h2>⚙️ Admin Panel</h2>
+    <div class="admin-close" onclick="closeAdmin()">✕</div>
+  </div>
+  <div class="admin-body">
+
+    <!-- ADD MOVIE FORM -->
+    <div class="sub-title">➕ Yangi kino qo'shish</div>
+
+    <div>
+      <div class="a-label">Kino nomi *</div>
+      <input class="a-input" id="a-title" placeholder="Masalan: Inception">
+    </div>
+    <div>
+      <div class="a-label">Tavsif</div>
+      <textarea class="a-input textarea" id="a-desc" placeholder="Kino haqida qisqacha..."></textarea>
+    </div>
+    <div class="a-row">
+      <div>
+        <div class="a-label">Yil *</div>
+        <input class="a-input" id="a-year" placeholder="2024" type="number">
+      </div>
+      <div>
+        <div class="a-label">Reyting (IMDb)</div>
+        <input class="a-input" id="a-rating" placeholder="8.5">
+      </div>
+    </div>
+    <div class="a-row">
+      <div>
+        <div class="a-label">Janr *</div>
+        <select class="a-select" id="a-genre">
+          <option value="Jangovar">⚔️ Jangovar</option>
+          <option value="Komediya">😂 Komediya</option>
+          <option value="Drama">🎭 Drama</option>
+          <option value="Triller">😱 Triller</option>
+          <option value="Fantastika">🚀 Fantastika</option>
+          <option value="Animatsiya">🎨 Animatsiya</option>
+          <option value="Romantik">💕 Romantik</option>
+          <option value="Qo'rqinchli">👻 Qo'rqinchli</option>
+        </select>
+      </div>
+      <div>
+        <div class="a-label">Til</div>
+        <select class="a-select" id="a-lang">
+          <option value="O'zbek">🇺🇿 O'zbek</option>
+          <option value="Rus">🇷🇺 Rus</option>
+          <option value="Ingliz">🇬🇧 Ingliz</option>
+        </select>
+      </div>
+    </div>
+    <div>
+      <div class="a-label">Poster URL (rasm havolasi)</div>
+      <input class="a-input" id="a-poster" placeholder="https://...jpg">
+    </div>
+    <div>
+      <div class="a-label">Aktyorlar (vergul bilan)</div>
+      <input class="a-input" id="a-cast" placeholder="Tom Hanks, Julia Roberts">
+    </div>
+
+    <div class="a-divider"></div>
+    <div class="sub-title">🎬 Video manbasi</div>
+
+    <div class="video-type-tabs">
+      <div class="vt-tab active" id="vt-mp4" onclick="setVideoType('mp4')">📁 MP4 Link</div>
+      <div class="vt-tab" id="vt-youtube" onclick="setVideoType('youtube')">▶️ YouTube</div>
+      <div class="vt-tab" id="vt-drive" onclick="setVideoType('drive')">📂 Drive</div>
+    </div>
+    <div id="vt-hint" style="font-size:12px;color:var(--muted);margin-bottom:6px;">
+      To'g'ridan-to'g'ri MP4 fayl havolasi (Google Drive, server, CDN)
+    </div>
+    <input class="a-input" id="a-video" placeholder="https://...mp4">
+
+    <div style="display:flex;gap:8px;margin-top:4px;">
+      <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;color:var(--muted);">
+        <input type="checkbox" id="a-featured" style="accent-color:var(--accent);width:16px;height:16px;">
+        Trending (featured)
+      </label>
+      <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;color:var(--muted);">
+        <input type="checkbox" id="a-isnew" style="accent-color:var(--accent);width:16px;height:16px;">
+        Yangi belgi
+      </label>
+    </div>
+
+    <button class="btn-add-movie" onclick="addMovie()">✅ Kinoni qo'shish</button>
+
+    <div class="a-divider"></div>
+    <div class="sub-title">📋 Kinolar ro'yxati (<span id="movie-count">0</span>)</div>
+    <div class="admin-movie-list" id="admin-movie-list"></div>
+
+  </div>
+</div>
+
+<!-- BOTTOM NAV -->
+<nav class="bottom-nav">
+  <div class="nav-btn active" id="nav-home" onclick="switchTab('home')">
+    <div class="icon">🏠</div><span>Asosiy</span>
+  </div>
+  <div class="nav-btn" id="nav-search" onclick="switchTab('search')">
+    <div class="icon">🔍</div><span>Qidiruv</span>
+  </div>
+  <div class="nav-btn" id="nav-watched" onclick="switchTab('watched')">
+    <div class="icon">📁</div><span>Tarix</span>
+  </div>
+  <div class="nav-btn" id="nav-profile" onclick="switchTab('profile')">
+    <div class="icon">👤</div><span>Profil</span>
+  </div>
+</nav>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ══════════════════════════════════════════════
+// MA'LUMOTLAR SAQLASH (localStorage)
+// ══════════════════════════════════════════════
+function loadMovies() {
+  try {
+    const saved = localStorage.getItem('kinobot_movies');
+    if (saved) return JSON.parse(saved);
+  } catch(e) {}
+  return [];
+}
+
+function saveMovies() {
+  try { localStorage.setItem('kinobot_movies', JSON.stringify(MOVIES)); } catch(e) {}
+}
+
+function loadFavs() {
+  try { return JSON.parse(localStorage.getItem('kinobot_favs') || '[]'); } catch(e) { return []; }
+}
+function saveFavs() {
+  try { localStorage.setItem('kinobot_favs', JSON.stringify(favIds)); } catch(e) {}
+}
+
+function loadWatched() {
+  try { return JSON.parse(localStorage.getItem('kinobot_watched') || '[]'); } catch(e) { return []; }
+}
+function saveWatched() {
+  try { localStorage.setItem('kinobot_watched', JSON.stringify(watchedIds)); } catch(e) {}
+}
+
+let MOVIES = loadMovies();
+let favIds = loadFavs();
+let watchedIds = loadWatched();
+let currentMovie = null;
+let currentGenre = 'Barchasi';
+let videoType = 'mp4';
+
+// Admin ID - o'z Telegram ID'ingizni kiriting!
+const ADMIN_IDS = [123456789]; // <-- shu yerga o'z Telegram ID'ingizni yozing
+
+// ══════════════════════════════════════════════
+// TELEGRAM WEBAPP
+// ══════════════════════════════════════════════
+const tg = window.Telegram?.WebApp;
+if (tg) {
+  tg.ready();
+  tg.expand();
+  const user = tg.initDataUnsafe?.user;
+  if (user) {
+    document.getElementById('profile-name').textContent = user.first_name + (user.last_name ? ' ' + user.last_name : '');
+    document.getElementById('profile-sub').textContent = '@' + (user.username || 'user') + ' · KinoBot';
+    // Admin tekshirish
+    if (ADMIN_IDS.includes(user.id)) {
+      document.getElementById('admin-menu-btn').style.display = 'flex';
+    }
+  }
+  tg.BackButton.onClick(() => {
+    if (document.getElementById('video-overlay').classList.contains('open')) { closePlayer(); return; }
+    if (document.getElementById('admin-panel').classList.contains('open')) { closeAdmin(); return; }
+    if (document.getElementById('detail-panel').classList.contains('open')) { closeDetail(); return; }
+  });
+}
+
+// ══════════════════════════════════════════════
+// RENDER FUNKSIYALAR
+// ══════════════════════════════════════════════
+function renderFeatured(movies) {
+  const row = document.getElementById('featured-row');
+  const featured = movies.filter(m => m.featured);
+  if (!featured.length) { row.innerHTML = ''; return; }
+  row.innerHTML = featured.map(m => `
+    <div class="featured-card" onclick="openDetail(${m.id})">
+      <img src="${m.poster || 'https://via.placeholder.com/200x280/1a1a24/7a7a9a?text=🎬'}" alt="${m.title}" loading="lazy" onerror="this.src='https://via.placeholder.com/200x280/1a1a24/7a7a9a?text=🎬'">
+      ${m.isNew ? '<div class="badge-new">YANGI</div>' : ''}
+      <div class="badge-imdb">⭐ ${m.rating || '?'}</div>
+      <div class="overlay">
+        <div class="title">${m.title}</div>
+        <div class="meta">${m.year} · ${m.genre}</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function renderGrid(movies) {
+  const grid = document.getElementById('movie-grid');
+  if (!movies.length) {
+    const isEmpty = MOVIES.length === 0;
+    if (isEmpty) {
+      grid.innerHTML = '<div style="grid-column:1/-1;padding:60px 0;text-align:center;color:var(--muted);font-size:14px;line-height:2"><div style="font-size:48px;margin-bottom:12px">🎬</div><div style="color:var(--text);font-size:16px;font-weight:700">Hali kino yo\'q</div><div style="font-size:13px;margin-top:6px">Profil → Admin panel orqali kino qo\'shing</div></div>';
+    } else {
+      grid.innerHTML = '<div style="grid-column:1/-1;padding:40px 0;text-align:center;color:var(--muted);font-size:14px">Bu janrda kino topilmadi 😕</div>';
+    }
+    return;
+  }
+  grid.innerHTML = movies.map(m => `
+    <div class="movie-card" onclick="openDetail(${m.id})">
+      <img src="${m.poster || 'https://via.placeholder.com/200x160/1a1a24/7a7a9a?text=🎬'}" alt="${m.title}" loading="lazy" onerror="this.src='https://via.placeholder.com/200x160/1a1a24/7a7a9a?text=🎬'">
+      <div class="info">
+        <div class="name">${m.title}</div>
+        <div class="year">${m.year} · ${m.lang || ''}</div>
+        <div class="rating">⭐ ${m.rating || '?'} · ${m.genre}</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function renderHome() {
+  const filtered = currentGenre === 'Barchasi' ? MOVIES : MOVIES.filter(m => m.genre === currentGenre);
+  renderFeatured(filtered);
+  renderGrid(filtered);
+}
+
+function filterGenre(el, genre) {
+  document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  currentGenre = genre;
+  renderHome();
+}
+
+// ══════════════════════════════════════════════
+// DETAIL PANEL
+// ══════════════════════════════════════════════
+function openDetail(id) {
+  const m = MOVIES.find(m => m.id === id);
+  if (!m) return;
+  currentMovie = m;
+
+  document.getElementById('d-poster').src = m.poster || 'https://via.placeholder.com/400x320/1a1a24/7a7a9a?text=🎬';
+  document.getElementById('d-title').textContent = m.title;
+  document.getElementById('d-meta').innerHTML = `
+    <span class="d-tag imdb">⭐ ${m.rating || '?'}</span>
+    <span class="d-tag">${m.year}</span>
+    <span class="d-tag">${m.genre}</span>
+    ${m.lang ? `<span class="d-tag">${m.lang}</span>` : ''}
+    ${m.videoUrl ? '<span class="d-tag" style="color:#4caf50;border-color:#4caf50">✓ Video bor</span>' : '<span class="d-tag" style="color:var(--muted)">⏳ Tez kunda</span>'}
+  `;
+  document.getElementById('d-desc').textContent = m.desc || '';
+
+  // Cast
+  const castRow = document.getElementById('d-cast');
+  const castArr = Array.isArray(m.cast) ? m.cast : (m.cast || '').split(',').map(s => s.trim()).filter(Boolean);
+  castRow.innerHTML = castArr.map(name => `
+    <div class="cast-item">
+      <img src="https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=22222f&color=f0f0f5&size=58" alt="${name}">
+      <div class="cast-name">${name}</div>
+    </div>
+  `).join('');
+
+  // Fav button
+  document.getElementById('fav-btn').textContent = favIds.includes(id) ? '❤️' : '🤍';
+  document.getElementById('fav-btn').className = 'btn-fav' + (favIds.includes(id) ? ' active' : '');
+
+  document.getElementById('detail-panel').classList.add('open');
+  if (tg) tg.BackButton.show();
+
+  // Watched ga qo'shish
+  if (!watchedIds.includes(id)) { watchedIds.unshift(id); saveWatched(); }
+  updateStats();
+}
+
+function closeDetail() {
+  document.getElementById('detail-panel').classList.remove('open');
+  if (tg) tg.BackButton.hide();
+}
+
+function toggleFav() {
+  if (!currentMovie) return;
+  const id = currentMovie.id;
+  if (favIds.includes(id)) {
+    favIds = favIds.filter(f => f !== id);
+    document.getElementById('fav-btn').textContent = '🤍';
+    document.getElementById('fav-btn').className = 'btn-fav';
+    showToast('💔 Sevimlilardan olib tashlandi');
+  } else {
+    favIds.unshift(id);
+    document.getElementById('fav-btn').textContent = '❤️';
+    document.getElementById('fav-btn').className = 'btn-fav active';
+    showToast('❤️ Sevimlilarga qo\'shildi!');
+  }
+  saveFavs();
+  updateStats();
+}
+
+function showFavorites() {
+  switchTab('watched');
+  // favlar ko'rsatiladi
+  const list = document.getElementById('watched-list');
+  const favMovies = favIds.map(id => MOVIES.find(m => m.id === id)).filter(Boolean);
+  if (!favMovies.length) {
+    document.querySelector('#watched-screen .top-bar h1').innerHTML = '❤️ <span>Sevimlilar</span>';
+    list.innerHTML = '<div style="padding:60px 0;text-align:center;color:var(--muted);font-size:14px;">Hali sevimlilar yo\'q ❤️</div>';
+    return;
+  }
+  document.querySelector('#watched-screen .top-bar h1').innerHTML = '❤️ <span>Sevimlilar</span>';
+  list.innerHTML = favMovies.map(m => `
+    <div class="watched-item" onclick="openDetail(${m.id})">
+      <img src="${m.poster || ''}" alt="${m.title}" onerror="this.src='https://via.placeholder.com/54x74/1a1a24/7a7a9a?text=🎬'">
+      <div class="w-info">
+        <div class="w-name">${m.title}</div>
+        <div class="w-meta">${m.year} · ${m.genre} · ⭐ ${m.rating || '?'}</div>
+      </div>
+      <div class="w-continue">▶ Ko'r</div>
+    </div>
+  `).join('');
+}
+
+// ══════════════════════════════════════════════
+// VIDEO PLAYER
+// ══════════════════════════════════════════════
+function openPlayer() {
+  if (!currentMovie) return;
+  const m = currentMovie;
+
+  if (!m.videoUrl) {
+    showToast('⏳ Bu kino uchun video hali qo\'shilmagan');
+    return;
+  }
+
+  document.getElementById('v-title').textContent = m.title;
+  const wrap = document.getElementById('video-wrap');
+  wrap.innerHTML = '';
+
+  if (m.videoType === 'youtube') {
+    // YouTube embed
+    let ytId = m.videoUrl;
+    // youtube.com/watch?v=ID yoki youtu.be/ID dan ID ajratib olish
+    const match = m.videoUrl.match(/(?:v=|youtu\.be\/|embed\/)([a-zA-Z0-9_-]{11})/);
+    if (match) ytId = match[1];
+    wrap.innerHTML = `<iframe src="https://www.youtube.com/embed/${ytId}?autoplay=1&rel=0" allowfullscreen allow="autoplay"></iframe>`;
+  } else if (m.videoType === 'drive') {
+    // Google Drive embed
+    let driveId = m.videoUrl;
+    const match = m.videoUrl.match(/\/d\/([a-zA-Z0-9_-]+)/);
+    if (match) driveId = match[1];
+    wrap.innerHTML = `<iframe src="https://drive.google.com/file/d/${driveId}/preview" allowfullscreen allow="autoplay"></iframe>`;
+  } else {
+    // To'g'ridan-to'g'ri MP4
+    wrap.innerHTML = `
+      <video controls autoplay playsinline
+        style="width:100%;max-height:100vh;"
+        src="${m.videoUrl}">
+        Brauzeringiz videoni qo'llab-quvvatlamaydi.
+      </video>
+    `;
+  }
+
+  document.getElementById('video-overlay').classList.add('open');
+  if (tg) tg.BackButton.show();
+}
+
+function closePlayer() {
+  const overlay = document.getElementById('video-overlay');
+  overlay.classList.remove('open');
+  document.getElementById('video-wrap').innerHTML = ''; // videoni to'xtatish
+  if (tg) tg.BackButton.hide();
+  setTimeout(() => { if (document.getElementById('detail-panel').classList.contains('open') && tg) tg.BackButton.show(); }, 100);
+}
+
+// ══════════════════════════════════════════════
+// QIDIRUV
+// ══════════════════════════════════════════════
+function doSearch(q) {
+  const res = document.getElementById('search-results');
+  if (!q.trim()) {
+    res.innerHTML = '<div style="padding:40px 0;text-align:center;color:var(--muted);font-size:14px;">Kino nomi yozing...</div>';
+    return;
+  }
+  const found = MOVIES.filter(m =>
+    m.title.toLowerCase().includes(q.toLowerCase()) ||
+    m.genre.toLowerCase().includes(q.toLowerCase()) ||
+    String(m.year).includes(q) ||
+    (m.lang || '').toLowerCase().includes(q.toLowerCase())
+  );
+  if (!found.length) {
+    res.innerHTML = '<div style="padding:40px 0;text-align:center;color:var(--muted);font-size:14px;">Hech narsa topilmadi 😕</div>';
+    return;
+  }
+  res.innerHTML = found.map(m => `
+    <div class="search-item" onclick="openDetail(${m.id})">
+      <img src="${m.poster || ''}" alt="${m.title}" loading="lazy" onerror="this.src='https://via.placeholder.com/54x74/1a1a24/7a7a9a?text=🎬'">
+      <div class="s-info">
+        <div class="s-name">${m.title}</div>
+        <div class="s-meta">${m.year} · ${m.genre} · ⭐ ${m.rating || '?'}${m.videoUrl ? ' · ✅ Video' : ''}</div>
+        <div class="s-desc">${(m.desc || '').substring(0, 80)}${m.desc && m.desc.length > 80 ? '...' : ''}</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+// ══════════════════════════════════════════════
+// KO'RISH TARIXI
+// ══════════════════════════════════════════════
+function renderWatched() {
+  document.querySelector('#watched-screen .top-bar h1').innerHTML = '📁 <span>Tarixim</span>';
+  const list = document.getElementById('watched-list');
+  if (!watchedIds.length) {
+    list.innerHTML = '<div style="padding:60px 0;text-align:center;color:var(--muted);font-size:14px;">Hali hech narsa ko\'rmadingiz 🎬</div>';
+    return;
+  }
+  const watchedMovies = watchedIds.map(id => MOVIES.find(m => m.id === id)).filter(Boolean);
+  list.innerHTML = watchedMovies.map(m => `
+    <div class="watched-item" onclick="openDetail(${m.id})">
+      <img src="${m.poster || ''}" alt="${m.title}" onerror="this.src='https://via.placeholder.com/54x74/1a1a24/7a7a9a?text=🎬'">
+      <div class="w-info">
+        <div class="w-name">${m.title}</div>
+        <div class="w-meta">${m.year} · ${m.genre} · ⭐ ${m.rating || '?'}</div>
+        <div class="w-progress"><div class="w-progress-bar" style="width:${Math.floor(Math.random()*50+30)}%"></div></div>
+      </div>
+      <div class="w-continue">▶ Davom</div>
+    </div>
+  `).join('');
+}
+
+// ══════════════════════════════════════════════
+// NAVIGATSIYA
+// ══════════════════════════════════════════════
+function switchTab(tab) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById(tab + '-screen').classList.add('active');
+  document.getElementById('nav-' + tab).classList.add('active');
+  if (tab === 'watched') renderWatched();
+  if (tab === 'search') setTimeout(() => document.getElementById('search-input').focus(), 200);
+  if (tab === 'profile') updateStats();
+}
+
+function updateStats() {
+  document.getElementById('stat-watched').textContent = watchedIds.length;
+  document.getElementById('stat-fav').textContent = favIds.length;
+  document.getElementById('stat-total').textContent = MOVIES.length;
+}
+
+// ══════════════════════════════════════════════
+// ADMIN PANEL
+// ══════════════════════════════════════════════
+function openAdmin() {
+  renderAdminList();
+  document.getElementById('admin-panel').classList.add('open');
+  if (tg) tg.BackButton.show();
+}
+
+function closeAdmin() {
+  document.getElementById('admin-panel').classList.remove('open');
+  if (tg) tg.BackButton.hide();
+}
+
+function setVideoType(type) {
+  videoType = type;
+  document.querySelectorAll('.vt-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('vt-' + type).classList.add('active');
+  const hints = {
+    mp4: "To'g'ridan-to'g'ri MP4 fayl havolasi (server, CDN, Cloudflare R2...)",
+    youtube: "YouTube video havolasi: https://youtube.com/watch?v=... yoki https://youtu.be/...",
+    drive: "Google Drive havolasi: https://drive.google.com/file/d/FILE_ID/view"
+  };
+  document.getElementById('vt-hint').textContent = hints[type];
+  const placeholders = {
+    mp4: "https://example.com/kino.mp4",
+    youtube: "https://youtube.com/watch?v=dQw4w9WgXcQ",
+    drive: "https://drive.google.com/file/d/1aBcDeF.../view"
+  };
+  document.getElementById('a-video').placeholder = placeholders[type];
+}
+
+function addMovie() {
+  const title = document.getElementById('a-title').value.trim();
+  const year = document.getElementById('a-year').value.trim();
+  const genre = document.getElementById('a-genre').value;
+
+  if (!title) { showToast('⚠️ Kino nomini kiriting!'); return; }
+  if (!year) { showToast('⚠️ Yilni kiriting!'); return; }
+
+  const castRaw = document.getElementById('a-cast').value.trim();
+  const castArr = castRaw ? castRaw.split(',').map(s => s.trim()).filter(Boolean) : [];
+
+  const newMovie = {
+    id: Date.now(),
+    title,
+    year: parseInt(year),
+    genre,
+    rating: document.getElementById('a-rating').value.trim() || '?',
+    lang: document.getElementById('a-lang').value,
+    desc: document.getElementById('a-desc').value.trim(),
+    poster: document.getElementById('a-poster').value.trim(),
+    cast: castArr,
+    videoUrl: document.getElementById('a-video').value.trim(),
+    videoType: videoType,
+    featured: document.getElementById('a-featured').checked,
+    isNew: document.getElementById('a-isnew').checked
+  };
+
+  MOVIES.unshift(newMovie);
+  saveMovies();
+  renderHome();
+  renderAdminList();
+
+  // Formni tozalash
+  ['a-title','a-year','a-rating','a-desc','a-poster','a-cast','a-video'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('a-featured').checked = false;
+  document.getElementById('a-isnew').checked = false;
+
+  showToast('✅ "' + title + '" qo\'shildi!');
+  updateStats();
+}
+
+function deleteMovie(id) {
+  const m = MOVIES.find(m => m.id === id);
+  if (!m) return;
+  if (!confirm('"' + m.title + '" ni o\'chirasizmi?')) return;
+  MOVIES = MOVIES.filter(m => m.id !== id);
+  saveMovies();
+  renderHome();
+  renderAdminList();
+  updateStats();
+  showToast('🗑 O\'chirildi');
+}
+
+function renderAdminList() {
+  document.getElementById('movie-count').textContent = MOVIES.length;
+  const list = document.getElementById('admin-movie-list');
+  if (!MOVIES.length) {
+    list.innerHTML = '<div style="text-align:center;color:var(--muted);padding:20px;font-size:13px;">Hali kino yo\'q</div>';
+    return;
+  }
+  list.innerHTML = MOVIES.map(m => `
+    <div class="admin-movie-item">
+      <img src="${m.poster || 'https://via.placeholder.com/42x56/22222f/7a7a9a?text=🎬'}" alt="${m.title}" onerror="this.src='https://via.placeholder.com/42x56/22222f/7a7a9a?text=🎬'">
+      <div class="ami-info">
+        <div class="ami-name">${m.title}</div>
+        <div class="ami-meta">${m.year} · ${m.genre} · ⭐${m.rating}</div>
+        <div class="ami-video">${m.videoUrl ? '✅ Video: ' + m.videoType.toUpperCase() : '⏳ Video yo\'q'}</div>
+      </div>
+      <div class="ami-actions">
+        <div class="ami-btn del" onclick="deleteMovie(${m.id})">🗑</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+// ══════════════════════════════════════════════
+// TOAST
+// ══════════════════════════════════════════════
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => t.classList.remove('show'), 2800);
+}
+
+// ══════════════════════════════════════════════
+// SWIPE TO CLOSE
+// ══════════════════════════════════════════════
+let touchStartY = 0;
+['detail-panel', 'admin-panel'].forEach(pid => {
+  const el = document.getElementById(pid);
+  el.addEventListener('touchstart', e => { touchStartY = e.touches[0].clientY; }, { passive: true });
+  el.addEventListener('touchend', e => {
+    const diff = e.changedTouches[0].clientY - touchStartY;
+    if (diff > 90 && el.scrollTop === 0) {
+      if (pid === 'detail-panel') closeDetail();
+      else closeAdmin();
+    }
+  }, { passive: true });
+});
+
+// ══════════════════════════════════════════════
+// MAJBURIY OBUNA
+// ══════════════════════════════════════════════
+
+// ── O'ZGARTIRING: o'z kanal ma'lumotlaringizni kiriting ──
+const CHANNEL_CONFIG = {
+  name: 'Mening Kanalim',        // Kanal nomi (ko'rinadigan)
+  handle: '@mening_kanalim',     // @username
+  link: 'https://t.me/mening_kanalim',  // Kanal havolasi
+};
+// ─────────────────────────────────────────────────────────
+
+// Obuna tekshirish API manzili (Vercel serverless)
+const CHECK_API = '/api/check-sub';
+
+function initSubGate() {
+  // Kanal ma'lumotlarini ekranga yozish
+  document.getElementById('sub-ch-name').textContent = CHANNEL_CONFIG.name;
+  document.getElementById('sub-ch-handle').textContent = CHANNEL_CONFIG.handle;
+  document.getElementById('sub-channel-link').href = CHANNEL_CONFIG.link;
+
+  // Avval tekshirish: foydalanuvchi Telegram orqali kirganmi?
+  const userId = tg?.initDataUnsafe?.user?.id;
+  if (!userId) {
+    // Telegram WebApp emas (oddiy brauzer) — to'siqsiz kiritish
+    hideSubGate();
+    return;
+  }
+
+  // localStorage da tekshirilgan bo'lsa — qaytadan tekshirmaslik (30 daqiqa)
+  const cached = localStorage.getItem('sub_verified');
+  if (cached) {
+    const { ts, uid } = JSON.parse(cached);
+    if (uid === userId && Date.now() - ts < 30 * 60 * 1000) {
+      hideSubGate();
+      return;
+    }
+  }
+
+  // Tekshirish
+  silentCheck(userId);
+}
+
+async function silentCheck(userId) {
+  try {
+    const r = await fetch(CHECK_API, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ user_id: userId })
+    });
+    const data = await r.json();
+    if (data.ok && data.subscribed) {
+      cacheAndHide(userId);
+    }
+    // obuna emas — gate ko'rinib turadi
+  } catch(e) {
+    // API ishlamasa — kiritib yuborish (UX uchun)
+    hideSubGate();
+  }
+}
+
+async function checkSubscription() {
+  const btn = document.getElementById('btn-check-sub');
+  const statusEl = document.getElementById('sub-status');
+  const userId = tg?.initDataUnsafe?.user?.id;
+
+  if (!userId) {
+    hideSubGate();
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = '⏳ Tekshirilmoqda...';
+  statusEl.textContent = '';
+  statusEl.className = 'sub-status';
+
+  try {
+    const r = await fetch(CHECK_API, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ user_id: userId })
+    });
+    const data = await r.json();
+
+    if (data.ok && data.subscribed) {
+      statusEl.textContent = '✅ Obuna tasdiqlandi!';
+      statusEl.className = 'sub-status success';
+      cacheAndHide(userId);
+    } else {
+      statusEl.textContent = "❌ Obuna topilmadi. Avval kanalga obuna bo'ling!";
+      statusEl.className = 'sub-status error';
+      btn.disabled = false;
+      btn.textContent = "✅ Obuna bo'ldim, tekshir";
+      // Kanalni ochish
+      setTimeout(() => { window.open(CHANNEL_CONFIG.link, '_blank'); }, 500);
+    }
+  } catch(e) {
+    statusEl.textContent = "⚠️ Xato yuz berdi, qayta urinib ko'ring";
+    statusEl.className = 'sub-status error';
+    btn.disabled = false;
+    btn.textContent = "✅ Obuna bo'ldim, tekshir";
+  }
+}
+
+function cacheAndHide(userId) {
+  localStorage.setItem('sub_verified', JSON.stringify({ ts: Date.now(), uid: userId }));
+  setTimeout(hideSubGate, 400);
+}
+
+function hideSubGate() {
+  document.getElementById('sub-gate').classList.add('hidden');
+}
+
+// ══════════════════════════════════════════════
+// ISHGA TUSHIRISH
+// ══════════════════════════════════════════════
+initSubGate();
+renderHome();
+updateStats();
+</script>
+</body>
+</html>
